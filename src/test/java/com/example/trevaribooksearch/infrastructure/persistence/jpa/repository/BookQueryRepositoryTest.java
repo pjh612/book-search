@@ -1,6 +1,8 @@
 package com.example.trevaribooksearch.infrastructure.persistence.jpa.repository;
 
+import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
+import com.example.trevaribooksearch.infrastructure.persistence.jpa.config.TestJpaConfig;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.config.TestQuerydslConfig;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.AuthorEntity;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.BookEntity;
@@ -17,12 +19,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({BookQueryRepository.class, TestQuerydslConfig.class})
+@Import({BookQueryRepository.class, TestQuerydslConfig.class, TestJpaConfig.class})
 class BookQueryRepositoryTest {
 
     @Autowired
@@ -150,5 +154,43 @@ class BookQueryRepositoryTest {
         assertThat(page.getContent()).hasSize(3);
         assertThat(page.getContent().get(0).title()).isEqualTo("제목3");
         assertThat(page.getContent().get(2).title()).isEqualTo("제목1");
+    }
+
+    @Test
+    @DisplayName("findById가 BookDetailResponse를 반환한다")
+    void findById_returnsBookDetailResponse() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+        BookEntity book = new BookEntity(null, "isbn123", "테스트책", "부제", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book);
+        em.flush();
+        em.clear();
+
+        // when
+        Optional<BookDetailResponse> result = bookQueryRepository.findById(book.getId());
+
+        // then
+        assertThat(result).isPresent();
+        BookDetailResponse detail = result.get();
+        assertThat(detail.id()).isEqualTo(book.getId());
+        assertThat(detail.title()).isEqualTo("테스트책");
+        assertThat(detail.author()).isEqualTo("저자");
+        assertThat(detail.publisher()).isEqualTo("출판사");
+    }
+
+    @Test
+    @DisplayName("findById는 없는 ID일 때 빈 Optional을 반환한다")
+    void findById_returnsEmptyOptional_whenNotFound() {
+        // given
+        UUID notExistId = UUID.randomUUID();
+
+        // when
+        Optional<BookDetailResponse> result = bookQueryRepository.findById(notExistId);
+
+        // then
+        assertThat(result).isEqualTo(Optional.empty());
     }
 }

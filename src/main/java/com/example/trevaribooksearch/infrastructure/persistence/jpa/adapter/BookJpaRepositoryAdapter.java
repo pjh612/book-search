@@ -1,5 +1,6 @@
 package com.example.trevaribooksearch.infrastructure.persistence.jpa.adapter;
 
+import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
 import com.example.trevaribooksearch.application.out.BookQueryRepositoryPort;
 import com.example.trevaribooksearch.domain.model.Book;
@@ -13,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,6 +26,11 @@ public class BookJpaRepositoryAdapter implements BookRepository, BookQueryReposi
     @Override
     public Page<BookResponse> findBooks(Pageable pageRequest) {
         return bookQueryRepository.findBooks(pageRequest);
+    }
+
+    @Override
+    public Optional<BookDetailResponse> findById(UUID id) {
+        return bookQueryRepository.findById(id);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.example.trevaribooksearch.infrastructure.persistence.jpa.repository;
 
+import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
@@ -12,10 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.QAuthorEntity.authorEntity;
 import static com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.QBookEntity.bookEntity;
@@ -77,5 +75,29 @@ public class BookQueryRepository {
         }
         return orders.toArray(new OrderSpecifier[0]);
     }
+
+    public Optional<BookDetailResponse> findById(UUID id) {
+        return Optional.ofNullable(queryFactory.select(Projections.constructor(BookDetailResponse.class,
+                                bookEntity.id,
+                                bookEntity.title,
+                                bookEntity.subtitle,
+                                authorEntity.name,
+                                bookEntity.image,
+                                bookEntity.isbn,
+                                publisherEntity.name,
+                                bookEntity.published,
+                                bookEntity.createdBy,
+                                bookEntity.updatedBy,
+                                bookEntity.createdAt,
+                                bookEntity.updatedAt
+                        )
+                )
+                .from(bookEntity)
+                .join(authorEntity).on(bookEntity.authorId.eq(authorEntity.id))
+                .join(publisherEntity).on(publisherEntity.id.eq(bookEntity.publisherId))
+                .where(bookEntity.id.eq(id))
+                .fetchOne());
+    }
+
 
 }

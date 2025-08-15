@@ -1,11 +1,13 @@
 package com.example.trevaribooksearch.application.service;
 
+import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
 import com.example.trevaribooksearch.domain.model.Isbn;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.AuthorEntity;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.PublisherEntity;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +19,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -111,5 +115,40 @@ class QueryBookServiceIntegrationTest {
         assertThat(page.getContent()).hasSize(3);
         assertThat(page.getContent().get(0).title()).isEqualTo("제목3");
         assertThat(page.getContent().get(2).title()).isEqualTo("제목1");
+    }
+
+    @Test
+    @DisplayName("findById가 실제 DB에서 BookDetailResponse를 반환한다")
+    void findById_returnsBookDetailResponse_fromDatabase() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+        BookEntity book = new BookEntity(null, "isbn123", "테스트책", "부제", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book);
+        em.flush();
+        em.clear();
+
+        // when
+        BookDetailResponse result = queryBookService.findById(book.getId());
+
+        // then
+        assertThat(result.id()).isEqualTo(book.getId());
+        assertThat(result.title()).isEqualTo("테스트책");
+        assertThat(result.author()).isEqualTo("저자");
+        assertThat(result.publisher()).isEqualTo("출판사");
+    }
+
+    @Test
+    @DisplayName("findById는 없는 ID일 때 EntityNotFoundException을 던진다")
+    void findById_throwsEntityNotFoundException_whenNotFound() {
+        // given
+        UUID notExistId = UUID.randomUUID();
+
+        // expect
+        assertThatThrownBy(() -> queryBookService.findById(notExistId))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("도서 정보를 찾을 수 없습니다");
     }
 }
