@@ -1,1 +1,3 @@
 rootProject.name = 'trevari-book-search'
+
+include 'book-api'
