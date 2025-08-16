@@ -35,10 +35,10 @@ public class BookMapper {
                 book.getPublished(),
                 book.getPublisherId(),
                 book.getAuthorId(),
-                book.getAuditInfo().getCreatedAt(),
-                book.getAuditInfo().getUpdatedAt(),
-                book.getAuditInfo().getCreatedBy(),
-                book.getAuditInfo().getUpdatedBy()
+                book.getAuditInfo() == null? null :  book.getAuditInfo().getCreatedAt(),
+                book.getAuditInfo() == null? null :  book.getAuditInfo().getUpdatedAt(),
+                book.getAuditInfo() == null? null :  book.getAuditInfo().getCreatedBy(),
+                book.getAuditInfo() == null? null :  book.getAuditInfo().getUpdatedBy()
         );
     }
 }

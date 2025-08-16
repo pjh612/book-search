@@ -22,10 +22,10 @@ public class PublisherMapper {
         return new PublisherEntity(
                 publisher.getId(),
                 publisher.getName(),
-                publisher.getAuditInfo().getCreatedAt(),
-                publisher.getAuditInfo().getUpdatedAt(),
-                publisher.getAuditInfo().getCreatedBy(),
-                publisher.getAuditInfo().getUpdatedBy()
+                publisher.getAuditInfo() == null? null : publisher.getAuditInfo().getCreatedAt(),
+                publisher.getAuditInfo() == null? null :publisher.getAuditInfo().getUpdatedAt(),
+                publisher.getAuditInfo() == null? null :publisher.getAuditInfo().getCreatedBy(),
+                publisher.getAuditInfo() == null? null :publisher.getAuditInfo().getUpdatedBy()
         );
     }
 }

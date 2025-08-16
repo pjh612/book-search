@@ -22,10 +22,10 @@ public class AuthorMapper {
         return new AuthorEntity(
                 author.getId(),
                 author.getName(),
-                author.getAuditInfo().getCreatedAt(),
-                author.getAuditInfo().getUpdatedAt(),
-                author.getAuditInfo().getCreatedBy(),
-                author.getAuditInfo().getUpdatedBy()
+                author.getAuditInfo() == null? null : author.getAuditInfo().getCreatedAt(),
+                author.getAuditInfo() == null? null : author.getAuditInfo().getUpdatedAt(),
+                author.getAuditInfo() == null? null : author.getAuditInfo().getCreatedBy(),
+                author.getAuditInfo() == null? null : author.getAuditInfo().getUpdatedBy()
         );
     }
 }
