@@ -3,15 +3,16 @@ package com.example.trevaribooksearch.infrastructure.web;
 
 import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
+import com.example.trevaribooksearch.application.dto.BookSearchRequest;
+import com.example.trevaribooksearch.application.dto.BookSearchResponse;
 import com.example.trevaribooksearch.application.in.QueryBookUseCase;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -30,5 +31,10 @@ public class BookController {
     @GetMapping("/{id}")
     BookDetailResponse getById(@PathVariable UUID id) {
         return queryBookUseCase.findById(id);
+    }
+
+    @GetMapping("/search")
+    BookSearchResponse searchBooks(@RequestParam @Valid @NotBlank String keyword, @PageableDefault Pageable pageable) {
+        return queryBookUseCase.searchBooks(new BookSearchRequest(keyword, pageable));
     }
 }

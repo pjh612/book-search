@@ -13,3 +13,4 @@ public interface BookQueryRepositoryPort {
 
     Optional<BookDetailResponse> findById(UUID id);
 }
+

@@ -2,7 +2,12 @@ package com.example.trevaribooksearch.application.service;
 
 import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
+import com.example.trevaribooksearch.application.dto.BookSearchRequest;
+import com.example.trevaribooksearch.application.dto.BookSearchResponse;
+import com.example.trevaribooksearch.application.out.SearchEnginePort;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.adapter.BookJpaRepositoryAdapter;
+import com.example.trevaribooksearch.infrastructure.search.model.SearchOperatorType;
+import com.example.trevaribooksearch.infrastructure.search.model.SearchResult;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +34,9 @@ class QueryBookServiceTest {
 
     @Mock
     BookJpaRepositoryAdapter bookJpaRepositoryAdapter;
+
+    @Mock
+    SearchEnginePort<BookResponse> searchEngine;
 
     @InjectMocks
     QueryBookService service;
@@ -97,5 +105,47 @@ class QueryBookServiceTest {
         assertThatThrownBy(() -> service.findById(id))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("도서 정보를 찾을 수 없습니다");
+    }
+
+    @Test
+    @DisplayName("searchBooks가 SearchEnginePort를 통해 BookSearchResponse를 반환한다")
+    void searchBooks_returnsBookSearchResponse() {
+        // given
+        String keyword = "테스트";
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        BookSearchRequest request = new BookSearchRequest(keyword, pageRequest);
+
+        BookResponse book = new BookResponse(
+                UUID.randomUUID(), "테스트책", "부제", "저자", null, "isbn", "출판사", Instant.now()
+        );
+        List<BookResponse> content = List.of(book);
+        Page<BookResponse> page = new PageImpl<>(content, pageRequest, 1);
+
+        SearchResult.SearchMetaData metaData =
+                new SearchResult.SearchMetaData(
+                        123L, SearchOperatorType.NO_OPERATOR
+                );
+
+        SearchResult<BookResponse> searchResult =
+                new SearchResult<>(
+                        keyword, page, metaData
+                );
+
+        when(searchEngine.search(keyword, pageRequest)).thenReturn(searchResult);
+
+        // when
+        BookSearchResponse response = service.searchBooks(request);
+
+        // then
+        assertThat(response.searchQuery()).isEqualTo(keyword);
+        assertThat(response.pageInfo().currentPage()).isEqualTo(0);
+        assertThat(response.pageInfo().pageSize()).isEqualTo(10);
+        assertThat(response.pageInfo().totalPages()).isEqualTo(1);
+        assertThat(response.pageInfo().totalElements()).isEqualTo(1);
+        assertThat(response.books()).hasSize(1);
+        assertThat(response.books().iterator().next().title()).isEqualTo("테스트책");
+        assertThat(response.searchMetaData().executionTime()).isEqualTo(123L);
+        assertThat(response.searchMetaData().strategy())
+                .isEqualTo(SearchOperatorType.NO_OPERATOR);
     }
 }

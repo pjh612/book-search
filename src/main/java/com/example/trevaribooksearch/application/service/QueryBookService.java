@@ -2,8 +2,12 @@ package com.example.trevaribooksearch.application.service;
 
 import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
+import com.example.trevaribooksearch.application.dto.BookSearchRequest;
+import com.example.trevaribooksearch.application.dto.BookSearchResponse;
 import com.example.trevaribooksearch.application.in.QueryBookUseCase;
 import com.example.trevaribooksearch.application.out.BookQueryRepositoryPort;
+import com.example.trevaribooksearch.application.out.SearchEnginePort;
+import com.example.trevaribooksearch.infrastructure.search.model.SearchResult;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class QueryBookService implements QueryBookUseCase {
     private final BookQueryRepositoryPort bookQueryRepository;
+    private final SearchEnginePort<BookResponse> searchEngine;
 
     @Override
     public BookDetailResponse findById(UUID id) {
@@ -26,5 +31,12 @@ public class QueryBookService implements QueryBookUseCase {
     @Override
     public Page<BookResponse> findBooks(Pageable pageRequest) {
         return bookQueryRepository.findBooks(pageRequest);
+    }
+
+    @Override
+    public BookSearchResponse searchBooks(BookSearchRequest request) {
+        SearchResult<BookResponse> searchResult = searchEngine.search(request.keyword(), request.pageable());
+
+        return BookSearchResponse.from(searchResult);
     }
 }

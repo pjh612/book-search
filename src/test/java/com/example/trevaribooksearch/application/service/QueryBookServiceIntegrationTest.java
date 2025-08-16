@@ -2,10 +2,13 @@ package com.example.trevaribooksearch.application.service;
 
 import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
+import com.example.trevaribooksearch.application.dto.BookSearchRequest;
+import com.example.trevaribooksearch.application.dto.BookSearchResponse;
 import com.example.trevaribooksearch.domain.model.Isbn;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.AuthorEntity;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.trevaribooksearch.infrastructure.persistence.jpa.entity.PublisherEntity;
+import com.example.trevaribooksearch.infrastructure.search.exception.InvalidSearchQueryException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
@@ -151,4 +154,135 @@ class QueryBookServiceIntegrationTest {
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("도서 정보를 찾을 수 없습니다");
     }
+
+    @Test
+    @DisplayName("단일 키워드로 검색 시 결과를 반환한다")
+    void searchBooks_singleKeyword() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "홍길동", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        BookEntity book1 = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book1);
+        em.flush();
+        em.clear();
+
+        // when
+        BookSearchRequest request = new BookSearchRequest("자바", PageRequest.of(0, 10));
+        BookSearchResponse response = queryBookService.searchBooks(request);
+
+        // then
+        assertThat(response.books()).extracting(BookResponse::title)
+                .anyMatch(t -> t.contains("자바"));
+    }
+
+    @Test
+    @DisplayName("단일 검색어로 검색 시 결과를 반환한다")
+    void searchBooks_andOperator() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "홍길동", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        BookEntity book = new BookEntity(null, "isbn3", "자바와 스프링", "부제3", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book);
+        em.flush();
+        em.clear();
+
+        // when
+        BookSearchRequest request = new BookSearchRequest("자바와", PageRequest.of(0, 10));
+        BookSearchResponse response = queryBookService.searchBooks(request);
+
+        // then
+        assertThat(response.books()).extracting(BookResponse::title)
+                .containsExactly("자바와 스프링");
+    }
+
+    @Test
+    @DisplayName("OR 연산(|)으로 검색 시 결과를 반환한다")
+    void searchBooks_orOperator() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "홍길동", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        BookEntity book1 = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        BookEntity book2 = new BookEntity(null, "isbn2", "스프링 부트", "부제2", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        BookEntity book3 = new BookEntity(null, "isbn3", "자바와 스프링", "부제3", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book1);
+        em.persist(book2);
+        em.persist(book3);
+        em.flush();
+        em.clear();
+
+        // when
+        BookSearchRequest request = new BookSearchRequest("자바|스프링", PageRequest.of(0, 10));
+        BookSearchResponse response = queryBookService.searchBooks(request);
+
+        // then
+        assertThat(response.books()).extracting(BookResponse::title)
+                .contains("자바 프로그래밍", "스프링 부트", "자바와 스프링");
+    }
+
+    @Test
+    @DisplayName("NOT 연산(-)으로 검색 시 제외한 결과를 반환한다")
+    void searchBooks_notOperator() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "홍길동", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        BookEntity book1 = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        BookEntity book2 = new BookEntity(null, "isbn2", "스프링 부트", "부제2", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book1);
+        em.persist(book2);
+        em.flush();
+        em.clear();
+
+        // when
+        BookSearchRequest request = new BookSearchRequest("자바-스프링", PageRequest.of(0, 10));
+        BookSearchResponse response = queryBookService.searchBooks(request);
+
+        // then
+        assertThat(response.books()).extracting(BookResponse::title)
+                .containsExactly("자바 프로그래밍");
+    }
+
+    @Test
+    @DisplayName("빈 keyword로 검색 시 InvalidSearchQueryException이 발생한다")
+    void searchBooks_throwsException_whenKeywordBlank() {
+        // expect
+        BookSearchRequest request = new BookSearchRequest("   ", PageRequest.of(0, 10));
+        assertThatThrownBy(() -> queryBookService.searchBooks(request))
+                .isInstanceOf(InvalidSearchQueryException.class)
+                .hasMessageContaining("query cannot be null or blank");
+    }
+
+    @Test
+    @DisplayName("검색 결과가 없으면 빈 응답을 반환한다")
+    void searchBooks_returnsEmptyResult_whenNoMatch() {
+        // given
+        AuthorEntity author = new AuthorEntity(null, "홍길동", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+        BookEntity book = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(book);
+        em.flush();
+        em.clear();
+
+        // when
+        BookSearchRequest request = new BookSearchRequest("파이썬", PageRequest.of(0, 10));
+        BookSearchResponse response = queryBookService.searchBooks(request);
+
+        // then
+        assertThat(response.books()).isEmpty();
+        assertThat(response.pageInfo().totalElements()).isZero();
+    }
+
 }

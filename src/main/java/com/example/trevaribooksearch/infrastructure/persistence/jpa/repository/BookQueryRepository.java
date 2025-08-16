@@ -98,6 +98,4 @@ public class BookQueryRepository {
                 .where(bookEntity.id.eq(id))
                 .fetchOne());
     }
-
-
 }

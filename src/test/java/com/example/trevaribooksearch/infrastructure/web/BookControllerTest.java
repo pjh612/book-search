@@ -2,6 +2,7 @@ package com.example.trevaribooksearch.infrastructure.web;
 
 import com.example.trevaribooksearch.application.dto.BookDetailResponse;
 import com.example.trevaribooksearch.application.dto.BookResponse;
+import com.example.trevaribooksearch.application.dto.BookSearchResponse;
 import com.example.trevaribooksearch.application.in.QueryBookUseCase;
 import com.example.trevaribooksearch.domain.model.Isbn;
 import jakarta.persistence.EntityNotFoundException;
@@ -110,5 +111,87 @@ class BookControllerTest {
 
         mockMvc.perform(get("/api/books/{id}", id))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("/api/books/search GET 정상 검색 시 200 OK와 결과 반환")
+    void searchBooks_returnsOk() throws Exception {
+        BookResponse book = new BookResponse(
+                UUID.randomUUID(),
+                "테스트 책",
+                "부제목",
+                "저자",
+                null,
+                "9781234567890",
+                "테스트 출판사",
+                Instant.now()
+        );
+        BookSearchResponse response = new BookSearchResponse(
+                "테스트",
+                new BookSearchResponse.PageInfo(0, 10, 1, 1),
+                List.of(book),
+                10L,
+                null // 필요시 SearchOperator 전달
+        );
+        Mockito.when(queryBookUseCase.searchBooks(Mockito.any()))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/books/search")
+                        .param("keyword", "테스트")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.books[0].title").value("테스트 책"))
+                .andExpect(jsonPath("$.pageInfo.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("/api/books/search GET 결과가 없으면 빈 리스트 반환")
+    void searchBooks_returnsEmpty() throws Exception {
+        BookSearchResponse response = new BookSearchResponse(
+                "없는책",
+                new BookSearchResponse.PageInfo(0, 10, 0, 0),
+                List.of(),
+                5L,
+                null
+        );
+        Mockito.when(queryBookUseCase.searchBooks(Mockito.any()))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/books/search")
+                        .param("keyword", "없는책")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.books").isEmpty())
+                .andExpect(jsonPath("$.pageInfo.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("/api/books/search GET keyword 파라미터가 없으면 400 Bad Request 반환")
+    void searchBooks_missingKeyword_returnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("/api/books/search GET keyword가 blank이면 400 Bad Request 반환")
+    void searchBooks_blankKeyword_returnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("keyword", "   ")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("/api/books/search GET keywrod가 null이면 400 Bad Request 반환")
+    void searchBooks_nullKeyword_returnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isBadRequest());
     }
 }
