@@ -4,6 +4,7 @@ import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
+import com.example.bookapi.application.out.MessagePublisher;
 import com.example.bookapi.application.out.SearchEnginePort;
 import com.example.bookapi.infrastructure.persistence.jpa.adapter.BookJpaRepositoryAdapter;
 import com.example.bookapi.infrastructure.search.model.SearchOperatorType;
@@ -38,6 +39,9 @@ class QueryBookServiceTest {
     @Mock
     SearchEnginePort<BookResponse> searchEngine;
 
+    @Mock
+    MessagePublisher messagePublisher;
+
     @InjectMocks
     QueryBookService service;
 
@@ -49,7 +53,6 @@ class QueryBookServiceTest {
                 UUID.randomUUID(), "테스트책", "부제", "저자", null, "isbn", "출판사", Instant.now()
         );
         Page<BookResponse> page = new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1);
-
         when(bookJpaRepositoryAdapter.findBooks(any())).thenReturn(page);
 
         // when
