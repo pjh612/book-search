@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>도서 상세</title>
+  <link rel="stylesheet" href="/css/book-detail.css">
+  <script src="/js/auth-fetch.js"></script>
+</head>
+<body>
+  <div class="container">
+    <a href="/books" class="btn">← 목록으로</a>
+    <h1 id="titleHeading">도서 상세</h1>
+
+    <div id="message" class="msg"></div>
+
+    <div id="card" class="card hidden">
+      <img id="cover" class="cover" alt="표지" />
+      <div>
+        <div class="row"><span class="label">제목</span> <span id="title"></span></div>
+        <div class="row"><span class="label">부제</span> <span id="subtitle"></span></div>
+        <div class="row"><span class="label">저자</span> <span id="author"></span></div>
+        <div class="row"><span class="label">출판사</span> <span id="publisher"></span></div>
+        <div class="row"><span class="label">ISBN</span> <span id="isbn"></span></div>
+        <div class="row"><span class="label">출간일</span> <span id="published"></span></div>
+        <div class="row"><span class="label">생성자</span> <span id="createdBy"></span></div>
+        <div class="row"><span class="label">수정자</span> <span id="updatedBy"></span></div>
+        <div class="row"><span class="label">생성일</span> <span id="createdAt"></span></div>
+        <div class="row"><span class="label">수정일</span> <span id="updatedAt"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      'use strict';
+
+      const PLACEHOLDER_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="#eef2ff"/>
+              <stop offset="100%" stop-color="#e5e7eb"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#g)"/>
+          <g fill="#9ca3af" transform="translate(75,110)">
+            <rect x="0" y="0" width="150" height="180" rx="8" ry="8" fill="#d1d5db"/>
+            <path d="M15 30h120v8H15zM15 55h120v8H15zM15 80h100v8H15z"/>
+          </g>
+          <text x="50%" y="90%" dominant-baseline="middle" text-anchor="middle" fill="#6b7280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial" font-size="16">
+            No Cover Image
+          </text>
+        </svg>
+      `);
+
+      function fmtDate(v, withTime){
+        try{
+          if (!v) return '';
+          const d = new Date(v);
+          return withTime ? d.toLocaleString() : d.toLocaleDateString();
+        }catch{ return v || ''; }
+      }
+
+      function getBookId(){
+        const match = (location.pathname || '').match(/^\/books\/([^\/?#]+)/);
+        return match ? match[1] : null;
+      }
+
+      const els = {
+        msg: document.getElementById('message'),
+        card: document.getElementById('card'),
+        cover: document.getElementById('cover'),
+        titleHeading: document.getElementById('titleHeading'),
+        title: document.getElementById('title'),
+        subtitle: document.getElementById('subtitle'),
+        author: document.getElementById('author'),
+        publisher: document.getElementById('publisher'),
+        isbn: document.getElementById('isbn'),
+        published: document.getElementById('published'),
+        createdBy: document.getElementById('createdBy'),
+        updatedBy: document.getElementById('updatedBy'),
+        createdAt: document.getElementById('createdAt'),
+        updatedAt: document.getElementById('updatedAt')
+      };
+
+      function setMsg(text, type){
+        if (!els.msg) return;
+        els.msg.textContent = text || '';
+        els.msg.className = 'msg' + (type ? ' ' + type : '');
+      }
+
+
+      function setCover(src){
+        const c = els.cover;
+        const imgSrc = (typeof src === 'string' && src.trim()) ? src : PLACEHOLDER_IMG;
+        if (!c) return;
+        c.src = imgSrc;
+        c.onerror = () => { c.onerror = null; c.src = PLACEHOLDER_IMG; };
+      }
+
+      function renderBook(book){
+        if (els.titleHeading) els.titleHeading.textContent = book.title || '도서 상세';
+        if (els.title) els.title.textContent = book.title || '';
+        if (els.subtitle) els.subtitle.textContent = book.subtitle || '';
+        if (els.author) els.author.textContent = book.author || '';
+        if (els.publisher) els.publisher.textContent = book.publisher || '';
+        if (els.isbn) els.isbn.textContent = book.isbn || '';
+        if (els.published) els.published.textContent = fmtDate(book.published, false);
+        if (els.createdBy) els.createdBy.textContent = book.createdBy || '';
+        if (els.updatedBy) els.updatedBy.textContent = book.updatedBy || '';
+        if (els.createdAt) els.createdAt.textContent = fmtDate(book.createdAt, true);
+        if (els.updatedAt) els.updatedAt.textContent = fmtDate(book.updatedAt, true);
+        setCover(book.image);
+
+        if (els.card) els.card.classList.remove('hidden');
+        setMsg('');
+        if (book && book.title) { document.title = `${book.title} - 도서 상세`; }
+      }
+
+      const bookId = getBookId();
+      if (!bookId) {
+        setMsg('잘못된 경로입니다. 도서 ID를 찾을 수 없습니다.', 'error');
+        return;
+      }
+
+      (async function load(){
+        setMsg('불러오는 중...');
+        try {
+          const res = await fetch(`/api/books/${bookId}`, { headers: { 'Accept': 'application/json' } });
+          if (res.status === 404) {
+            setMsg('도서를 찾을 수 없습니다.', 'error');
+            if (els.card) els.card.classList.add('hidden');
+            return;
+          }
+          if (!res.ok) throw new Error('상세 조회 실패');
+
+          const book = await res.json();
+          if (!book) return;
+          renderBook(book);
+        } catch (err) {
+          setMsg((err && err.message) ? err.message : '상세 조회 실패', 'error');
+          if (els.card) els.card.classList.add('hidden');
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>
