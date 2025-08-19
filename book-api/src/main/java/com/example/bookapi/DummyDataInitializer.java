@@ -1,17 +1,16 @@
 package com.example.bookapi;
 
-import com.example.bookapi.domain.model.Author;
-import com.example.bookapi.domain.model.Book;
-import com.example.bookapi.domain.model.Isbn;
-import com.example.bookapi.domain.model.Publisher;
+import com.example.bookapi.domain.model.*;
 import com.example.bookapi.domain.repository.AuthorRepository;
 import com.example.bookapi.domain.repository.BookRepository;
 import com.example.bookapi.domain.repository.PublisherRepository;
+import com.example.bookapi.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -25,6 +24,8 @@ public class DummyDataInitializer {
     private final AuthorRepository authorRepository;
     private final PublisherRepository publisherRepository;
     private final BookRepository bookRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     public ApplicationRunner initDummyData() {
@@ -46,6 +47,8 @@ public class DummyDataInitializer {
                 ));
             }
             bookRepository.saveAll(books);
+
+            userRepository.save(new User(null, "test", passwordEncoder.encode("test"), "USER", AuditInfo.create("test")));
         };
     }
 }
