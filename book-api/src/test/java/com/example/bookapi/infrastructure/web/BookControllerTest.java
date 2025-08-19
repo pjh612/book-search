@@ -3,8 +3,10 @@ package com.example.bookapi.infrastructure.web;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchResponse;
+import com.example.bookapi.application.facade.QueryBookFacade;
 import com.example.bookapi.application.in.QueryBookUseCase;
 import com.example.bookapi.domain.model.Isbn;
+import com.example.bookapi.infrastructure.search.model.SearchOperatorType;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ class BookControllerTest {
 
     @MockitoBean
     private QueryBookUseCase queryBookUseCase;
+
+    @MockitoBean
+    private QueryBookFacade queryBookFacade;
 
     @Test
     @DisplayName("/api/books GET 요청시 200 OK와 결과 반환")
@@ -133,9 +138,9 @@ class BookControllerTest {
                 new BookSearchResponse.PageInfo(0, 10, 1, 1),
                 List.of(book),
                 10L,
-                null // 필요시 SearchOperator 전달
+                SearchOperatorType.NO_OPERATOR
         );
-        Mockito.when(queryBookUseCase.searchBooks(Mockito.any()))
+        Mockito.when(queryBookFacade.searchBooks(Mockito.any()))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/books/search")
