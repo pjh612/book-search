@@ -5,16 +5,20 @@ import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.domain.model.Isbn;
+import com.example.bookapi.infrastructure.cache.redis.TestRedisConfiguration;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.AuthorEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.PublisherEntity;
 import com.example.bookapi.infrastructure.search.exception.InvalidSearchQueryException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -32,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("test")
 @Transactional
 @EmbeddedKafka
+@Import(TestRedisConfiguration.class)
 class QueryBookServiceIntegrationTest {
 
     @Autowired
@@ -39,6 +44,16 @@ class QueryBookServiceIntegrationTest {
 
     @Autowired
     private EntityManager em;
+
+    @Autowired
+    private CacheManager cacheManager;
+
+    @BeforeEach
+    void clearCache() {
+        cacheManager.getCacheNames().forEach(name ->
+                cacheManager.getCache(name).clear()
+        );
+    }
 
     @Test
     @DisplayName("findBooks가 실제 DB에서 데이터를 조회한다")
