@@ -162,7 +162,7 @@ class BookControllerTest {
                 5L,
                 null
         );
-        Mockito.when(queryBookUseCase.searchBooks(Mockito.any()))
+        Mockito.when(queryBookFacade.searchBooks(Mockito.any()))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/books/search")

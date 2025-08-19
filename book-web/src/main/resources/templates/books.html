@@ -28,6 +28,8 @@
     <div id="message" class="msg"></div>
 
     <div class="grid" id="list"></div>
+    <!-- 무한스크롤 관찰 지점 -->
+    <div id="infiniteSentinel" aria-hidden="true"></div>
 
     <div class="pager">
       <button id="prevBtn" class="ghost">이전</button>
@@ -57,6 +59,7 @@
         </svg>
       `);
 
+      // Elements
       const listEl = document.getElementById('list');
       const msgEl = document.getElementById('message');
       const formEl = document.getElementById('searchForm');
@@ -67,9 +70,25 @@
       const pageInfo = document.getElementById('pageInfo');
       const hotWrap = document.getElementById('hotKeywords');
       const kwListEl = document.getElementById('kwList');
+      const sentinel = document.getElementById('infiniteSentinel');
+      const pager = document.querySelector('.pager');
 
-      const state = { mode: 'all', keyword: (kwEl && kwEl.value) || '', page: 0, size: 12, totalPages: 0, totalElements: 0 };
+      // State
+      const state = {
+        mode: 'all',                 // 'all' | 'search'
+        keyword: (kwEl && kwEl.value) || '',
+        size: 24,
+        // cursor mode
+        cursor: null,
+        hasMore: true,
+        loading: false,
+        // page mode (for search only)
+        page: 0,
+        totalPages: 0,
+        totalElements: 0
+      };
 
+      // Helpers
       function setMsg(text, type){
         if (!msgEl) return;
         msgEl.textContent = text || '';
@@ -77,26 +96,29 @@
       }
       function fmtDate(v){ try{ return v ? new Date(v).toLocaleDateString() : ''; }catch{ return v || ''; } }
 
-      function renderList(items){
+      function createCard(b){
+        const card = document.createElement('div'); card.className = 'card';
+        const a = document.createElement('a'); a.href = `/books/${b.id}`; a.title = '상세보기';
+        const img = document.createElement('img'); img.className = 'thumb'; img.alt = '표지';
+        const imgSrc = (b && typeof b.image === 'string' && b.image.trim()) ? b.image : PLACEHOLDER_IMG;
+        img.src = imgSrc; img.onerror = () => { img.onerror = null; img.src = PLACEHOLDER_IMG; };
+        const body = document.createElement('div'); body.className = 'card-body';
+        const t = document.createElement('h3'); t.className = 'title'; t.textContent = b.title || '(제목 없음)';
+        const m = document.createElement('p'); m.className = 'meta'; m.textContent = [b.author, b.publisher, fmtDate(b.published)].filter(Boolean).join(' · ');
+        body.appendChild(t); body.appendChild(m); a.appendChild(img); a.appendChild(body); card.appendChild(a);
+        return card;
+      }
+
+      function clearList(){ if (listEl) listEl.innerHTML = ''; }
+      function appendItems(items){
         if (!listEl) return;
-        listEl.innerHTML = '';
-        if (!items || items.length === 0){ setMsg('표시할 도서가 없습니다.'); return; }
-        setMsg('');
         const frag = document.createDocumentFragment();
-        items.forEach(b => {
-          const card = document.createElement('div'); card.className = 'card';
-          const a = document.createElement('a'); a.href = `/books/${b.id}`; a.title = '상세보기';
-          const img = document.createElement('img'); img.className = 'thumb'; img.alt = '표지';
-          const imgSrc = (b && typeof b.image === 'string' && b.image.trim()) ? b.image : PLACEHOLDER_IMG;
-          img.src = imgSrc;
-          img.onerror = () => { img.onerror = null; img.src = PLACEHOLDER_IMG; };
-          const body = document.createElement('div'); body.className = 'card-body';
-          const t = document.createElement('h3'); t.className = 'title'; t.textContent = b.title || '(제목 없음)';
-          const m = document.createElement('p'); m.className = 'meta'; m.textContent = [b.author, b.publisher, fmtDate(b.published)].filter(Boolean).join(' · ');
-          body.appendChild(t); body.appendChild(m); a.appendChild(img); a.appendChild(body); card.appendChild(a); frag.appendChild(card);
-        });
+        (items || []).forEach(b => frag.appendChild(createCard(b)));
         listEl.appendChild(frag);
       }
+
+      function togglePager(show){ if (pager) pager.style.display = show ? '' : 'none'; }
+      function toggleSentinel(show){ if (sentinel) sentinel.style.display = show ? '' : 'none'; }
 
       function renderPager(){
         pageInfo.textContent = state.totalPages ? `${state.page+1} / ${state.totalPages}` : '';
@@ -105,26 +127,83 @@
       }
 
       async function fetchJSON(url){
-        console.log("Fetching:", url);
+        console.log('Fetching:', url);
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error(await res.text() || '요청 실패');
         return res.json();
       }
 
-      async function loadAll(){
-        setMsg('불러오는 중...');
-        try{
-          const data = await fetchJSON(`/api/books?page=${state.page}&size=${state.size}`);
-          const items = data.content || [];
-          state.totalPages = data.totalPages || 0;
-          state.totalElements = data.totalElements || (items ? items.length : 0);
-          renderList(items); renderPager(); setMsg('');
-        }catch(err){ setMsg(err.message || '불러오기 실패', 'error'); }
+      // ============== Cursor mode (all) ==============
+      let io = null;
+      function setupObserver(){
+        if (!sentinel) return;
+        if (io) io.disconnect();
+        io = new IntersectionObserver(async (entries)=>{
+          const entry = entries[0];
+          if (!entry.isIntersecting) return;
+          if (state.loading || !state.hasMore || state.mode !== 'all') return;
+          await loadMoreCursor();
+        }, { root: null, rootMargin: '0px 0px 400px 0px', threshold: 0 });
+        io.observe(sentinel);
       }
+      function disconnectObserver(){ if (io){ io.disconnect(); io = null; } }
+
+      async function loadMoreCursor(){
+        if (state.loading) return;
+        state.loading = true;
+        try{
+          let url = `/api/books/cursor?size=${state.size}`;
+          if (state.cursor) {
+            url += `&cursor=${encodeURIComponent(state.cursor)}`;
+          }
+          const data = await fetchJSON(url);
+          const items = data.items || [];
+          if (items.length === 0){
+            state.hasMore = false;
+            toggleSentinel(false);
+            if (!state.cursor) setMsg('표시할 도서가 없습니다.');
+            return;
+          }
+          appendItems(items);
+          setMsg('');
+          state.cursor = data.cursor || null;
+          state.hasMore = Boolean(state.cursor);
+          toggleSentinel(state.hasMore);
+        }catch(err){
+          console.warn(err);
+          setMsg(err.message || '불러오기 실패', 'error');
+        }finally{
+          state.loading = false;
+        }
+      }
+
+      async function initCursorMode(){
+        // UI 전환
+        togglePager(false);
+        toggleSentinel(true);
+        disconnectObserver();
+        setupObserver();
+
+        // 상태 초기화
+        state.cursor = null;
+        state.hasMore = true;
+        state.loading = false;
+        clearList();
+        setMsg('불러오는 중...');
+        await loadMoreCursor();
+      }
+
+      // ============== Page mode (search) ==============
+      async function loadAll(){ /* deprecated: cursor 모드로 대체 */ return initCursorMode(); }
 
       async function doSearch(){
         const q = (state.keyword || '').trim();
-        if (!q){ state.mode = 'all'; state.page = 0; return loadAll(); }
+        if (!q){ state.mode = 'all'; return initCursorMode(); }
+        // 검색 모드: 페이지 기반 유지, 무한스크롤 비활성
+        toggleSentinel(false);
+        disconnectObserver();
+        togglePager(true);
+
         setMsg('검색 중...');
         try{
           const data = await fetchJSON(`/api/books/search?keyword=${encodeURIComponent(q)}&page=${state.page}&size=${state.size}`);
@@ -132,22 +211,18 @@
           const p = data.pageInfo || {};
           state.totalPages = p.totalPages || 0;
           state.totalElements = p.totalElements || (items ? items.length : 0);
-          renderList(items); renderPager(); setMsg(state.totalElements ? `\'${q}\' 검색 결과 ${state.totalElements}건` : '검색 결과가 없습니다.');
+          clearList();
+          if (!items.length){ setMsg('검색 결과가 없습니다.'); }
+          else { appendItems(items); setMsg(`'${q}' 검색 결과 ${state.totalElements}건`); }
+          renderPager();
         }catch(err){ setMsg(err.message || '검색 실패', 'error'); }
       }
 
-      function toLocalISODate(d = new Date()){
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,'0');
-        const day = String(d.getDate()).padStart(2,'0');
-        return `${y}-${m}-${day}`;
-      }
-
+      // ============== Hot Keywords ==============
       async function loadHotKeywords(){
         if (!kwListEl || !hotWrap) return;
         try{
           const data = await fetchJSON(`/api/hot-keywords`);
-          console.log(data);
           const keywords = (data && data.keywords) ? data.keywords : (Array.isArray(data) ? data : []);
           kwListEl.innerHTML = '';
           if (!keywords.length){ hotWrap.style.display = 'none'; return; }
@@ -155,35 +230,29 @@
           const frag = document.createDocumentFragment();
           keywords.forEach((kw, i)=>{
             const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'kw-chip';
-            console.log(kw,i);
+            btn.type = 'button'; btn.className = 'kw-chip';
             const rank = document.createElement('span'); rank.className = 'kw-rank'; rank.textContent = String(i+1);
             const text = document.createElement('span'); text.textContent = ` ${kw}`;
             btn.appendChild(rank); btn.appendChild(text);
             btn.addEventListener('click', ()=>{
               if (kwEl) kwEl.value = kw;
-              state.keyword = kw;
-              state.page = 0;
-              state.mode = 'search';
+              state.keyword = kw; state.page = 0; state.mode = 'search';
               doSearch();
             });
             frag.appendChild(btn);
           });
           kwListEl.appendChild(frag);
-        }catch(err){
-          console.warn('인기 검색어 로드 실패', err);
-          hotWrap.style.display = 'none';
-        }
+        }catch(err){ console.warn('인기 검색어 로드 실패', err); hotWrap.style.display = 'none'; }
       }
 
+      // ============== Events ==============
       if (formEl){
         formEl.addEventListener('submit', (e)=>{
           e.preventDefault();
           state.keyword = kwEl ? kwEl.value : '';
           state.page = 0;
           state.mode = state.keyword ? 'search' : 'all';
-          state.mode === 'search' ? doSearch() : loadAll();
+          state.mode === 'search' ? doSearch() : initCursorMode();
         });
       }
 
@@ -193,15 +262,17 @@
           state.keyword = '';
           state.page = 0;
           state.mode = 'all';
-          loadAll();
+          initCursorMode();
         });
       }
 
-      prevBtn.addEventListener('click', ()=>{ if(state.page>0){ state.page--; state.mode==='search'?doSearch():loadAll(); } });
-      nextBtn.addEventListener('click', ()=>{ if(state.page+1<state.totalPages){ state.page++; state.mode==='search'?doSearch():loadAll(); } });
+      prevBtn.addEventListener('click', ()=>{ if(state.page>0){ state.page--; doSearch(); } });
+      nextBtn.addEventListener('click', ()=>{ if(state.page+1<state.totalPages){ state.page++; doSearch(); } });
 
-      loadHotKeywords(10);
-      if (state.keyword) { state.mode='search'; doSearch(); } else { loadAll(); }
+      // ============== Init ==============
+      loadHotKeywords();
+      if ((state.keyword || '').trim()) { state.mode='search'; togglePager(true); toggleSentinel(false); doSearch(); }
+      else { state.mode='all'; togglePager(false); initCursorMode(); }
     })();
   </script>
 </body>

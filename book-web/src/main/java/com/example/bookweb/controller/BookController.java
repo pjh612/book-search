@@ -1,10 +1,7 @@
 package com.example.bookweb.controller;
 
 import com.example.bookweb.client.BookApiClient;
-import com.example.bookweb.dto.BookDetailResponse;
-import com.example.bookweb.dto.BookResponse;
-import com.example.bookweb.dto.BookSearchRequest;
-import com.example.bookweb.dto.BookSearchResponse;
+import com.example.bookweb.dto.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Controller
@@ -37,6 +35,12 @@ public class BookController {
     @GetMapping("/api/books")
     Page<BookResponse> getBooks(@PageableDefault Pageable pageable) {
         return bookApiClient.getBooks(pageable);
+    }
+
+    @ResponseBody
+    @GetMapping("/api/books/cursor")
+    CursorPageResponse<Instant, BookResponse> getBooks(@RequestParam(required = false) Instant cursor, @RequestParam int size) {
+        return bookApiClient.getBooks(cursor, size);
     }
 
     @ResponseBody

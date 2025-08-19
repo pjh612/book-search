@@ -1,6 +1,7 @@
-package com.example.bookweb.client;
+package com.example.bookweb.client.impl;
 
 
+import com.example.bookweb.client.BookApiClient;
 import com.example.bookweb.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -58,8 +60,19 @@ public class BookApiRestClient implements BookApiClient {
                 .retrieve()
                 .body(new ParameterizedTypeReference<PageImpl<BookResponse>>() {
                 });
+    }
 
-
+    @Override
+    public CursorPageResponse<Instant, BookResponse> getBooks(Instant cursor, int size) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/books/cursor")
+                        .queryParam("cursor", cursor)
+                        .queryParam("size", size)
+                        .build())
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
     }
 
     @Override

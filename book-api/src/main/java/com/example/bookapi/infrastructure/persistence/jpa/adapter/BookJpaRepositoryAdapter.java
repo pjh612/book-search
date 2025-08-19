@@ -3,6 +3,7 @@ package com.example.bookapi.infrastructure.persistence.jpa.adapter;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.out.BookQueryRepositoryPort;
+import com.example.bookapi.common.model.CursorPageResponse;
 import com.example.bookapi.domain.model.Book;
 import com.example.bookapi.domain.repository.BookRepository;
 import com.example.bookapi.infrastructure.persistence.jpa.mapper.BookMapper;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +33,16 @@ public class BookJpaRepositoryAdapter implements BookRepository, BookQueryReposi
     @Override
     public Optional<BookDetailResponse> findById(UUID id) {
         return bookQueryRepository.findById(id);
+    }
+
+    @Override
+    public CursorPageResponse<Instant, BookDetailResponse> findBooks(Instant cursor, int size) {
+        List<BookDetailResponse> books = bookQueryRepository.findBooks(cursor, size);
+        if (books.isEmpty()) {
+            return new CursorPageResponse<>(null, books);
+        }
+
+        return new CursorPageResponse<>(books.getLast().createdAt(), books);
     }
 
     @Override

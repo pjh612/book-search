@@ -7,6 +7,7 @@ import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.application.in.QueryBookUseCase;
 import com.example.bookapi.application.out.BookQueryRepositoryPort;
 import com.example.bookapi.application.out.SearchEnginePort;
+import com.example.bookapi.common.model.CursorPageResponse;
 import com.example.bookapi.infrastructure.search.model.SearchResult;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -34,6 +36,12 @@ public class QueryBookService implements QueryBookUseCase {
     @Cacheable(value = "bookList", key = "#pageRequest.pageNumber + ':' + #pageRequest.pageSize + ':' + #pageRequest.sort.toString()")
     public Page<BookResponse> findBooks(Pageable pageRequest) {
         return bookQueryRepository.findBooks(pageRequest);
+    }
+
+    @Override
+    @Cacheable(value = "bookList", key = "#cursor + ':' + #size")
+    public CursorPageResponse<Instant, BookDetailResponse> findBooks(Instant cursor, int size) {
+        return bookQueryRepository.findBooks(cursor, size);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.example.bookapi.common.PageImpl;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.ComparableExpressionBase;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.*;
 
 import static com.example.bookapi.infrastructure.persistence.jpa.entity.QAuthorEntity.authorEntity;
@@ -97,5 +99,34 @@ public class BookQueryRepository {
                 .join(publisherEntity).on(publisherEntity.id.eq(bookEntity.publisherId))
                 .where(bookEntity.id.eq(id))
                 .fetchOne());
+    }
+
+    public List<BookDetailResponse> findBooks(Instant cursor, int size) {
+        return queryFactory.select(Projections.constructor(BookDetailResponse.class,
+                                bookEntity.id,
+                                bookEntity.title,
+                                bookEntity.subtitle,
+                                authorEntity.name,
+                                bookEntity.image,
+                                bookEntity.isbn,
+                                publisherEntity.name,
+                                bookEntity.published,
+                                bookEntity.createdBy,
+                                bookEntity.updatedBy,
+                                bookEntity.updatedAt,
+                                bookEntity.createdAt
+                        )
+                )
+                .from(bookEntity)
+                .join(authorEntity).on(bookEntity.authorId.eq(authorEntity.id))
+                .join(publisherEntity).on(publisherEntity.id.eq(bookEntity.publisherId))
+                .where(ltCreatedAt(cursor))
+                .orderBy(bookEntity.createdAt.desc())
+                .limit(size)
+                .fetch();
+    }
+
+    BooleanExpression ltCreatedAt(Instant value) {
+        return value == null ? null : bookEntity.createdAt.lt(value);
     }
 }

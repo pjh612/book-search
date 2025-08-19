@@ -7,6 +7,7 @@ import com.example.bookapi.infrastructure.persistence.jpa.config.TestQuerydslCon
 import com.example.bookapi.infrastructure.persistence.jpa.entity.AuthorEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.PublisherEntity;
+import com.fasterxml.uuid.Generators;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -192,5 +194,83 @@ class BookQueryRepositoryTest {
 
         // then
         assertThat(result).isEqualTo(Optional.empty());
+    }
+
+    @Test
+    @DisplayName("커서가 null이면 첫번째 데이터는 가장 최신 데이터가 된다")
+    void findBooks_returnsLatestBooks_whenCursorIsNull() {
+        // Given
+        AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        BookEntity[] books = new BookEntity[5];
+        for (int i = 0; i < 5; i++) {
+            books[i] = new BookEntity(null, "isbn" + i, "제목" + i, "부제" + i, null, Instant.now().plusSeconds(i), publisher.getId(), author.getId(), null, null, null, null);
+            em.persist(books[i]);
+        }
+        em.flush();
+        em.clear();
+
+        // When
+        List<BookDetailResponse> result = bookQueryRepository.findBooks(null, 3);
+
+        // Then
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0).title()).isEqualTo("제목4");
+        assertThat(result.get(2).title()).isEqualTo("제목2");
+    }
+
+    @Test
+    @DisplayName("커서가 있으면 해당 id보다 작은 데이터만 반환")
+    void findBooks_returnsBooksLessThanCursor() {
+        // Given
+        AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        BookEntity[] books = new BookEntity[5];
+        for (int i = 0; i < 5; i++) {
+            books[i] = new BookEntity(Generators.timeBasedEpochGenerator().generate(), "isbn" + i, "제목" + i, "부제" + i, null, Instant.now().plusSeconds(i), publisher.getId(), author.getId(), null, null, null, null);
+            em.persist(books[i]);
+        }
+        em.flush();
+        em.clear();
+
+        Instant cursor = bookQueryRepository.findById(books[2].getId())
+                .get()
+                .createdAt();
+
+        // When
+        List<BookDetailResponse> result = bookQueryRepository.findBooks(cursor, 10);
+
+        // Then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).title()).isEqualTo("제목1");
+        assertThat(result.get(1).title()).isEqualTo("제목0");
+    }
+
+    @Test
+    @DisplayName("findBooks(Instant, int): size 제한이 잘 동작한다")
+    void findBooks_sizeLimitWorks() {
+        // Given
+        AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+
+        for (int i = 0; i < 10; i++) {
+            em.persist(new BookEntity(null, "isbn" + i, "제목" + i, "부제" + i, null, Instant.now().plusSeconds(i), publisher.getId(), author.getId(), null, null, null, null));
+        }
+        em.flush();
+        em.clear();
+
+        // When
+        List<BookDetailResponse> result = bookQueryRepository.findBooks(null, 5);
+
+        // Then
+        assertThat(result).hasSize(5);
     }
 }

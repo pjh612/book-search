@@ -7,6 +7,7 @@ import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.application.facade.QueryBookFacade;
 import com.example.bookapi.application.in.QueryBookUseCase;
+import com.example.bookapi.common.model.CursorPageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +30,11 @@ public class BookController {
     @GetMapping
     Page<BookResponse> getBooks(@PageableDefault Pageable pageable) {
         return queryBookUseCase.findBooks(pageable);
+    }
+
+    @GetMapping("/cursor")
+    CursorPageResponse<Instant, BookDetailResponse> getBooks(@RequestParam(required = false) Instant cursor, @RequestParam int size) {
+        return queryBookUseCase.findBooks(cursor, size);
     }
 
     @GetMapping("/{id}")

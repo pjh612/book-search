@@ -4,6 +4,7 @@ import com.example.bookweb.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -15,6 +16,8 @@ public interface BookApiClient {
     BookDetailResponse getBookDetailById(UUID id);
 
     Page<BookResponse> getBooks(Pageable pageable);
+
+    CursorPageResponse<Instant, BookResponse> getBooks(Instant cursor, int size);
 
     BookSearchResponse searchBooks(BookSearchRequest request);
 

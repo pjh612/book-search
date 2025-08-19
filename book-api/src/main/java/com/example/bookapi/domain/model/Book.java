@@ -43,7 +43,7 @@ public class Book {
 
     public static Book create(String title, String subtitle, String image, String isbn, UUID authorId, UUID publisherId, Instant published, String createdBy) {
         return new Book(
-                UUID.randomUUID(),
+                null,
                 Isbn.of(isbn),
                 title.trim(),
                 subtitle,
