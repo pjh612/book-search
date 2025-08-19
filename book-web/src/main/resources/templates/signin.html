@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로그인</title>
+  <style>
+    :root { --bg:#f6f7f9; --card:#fff; --text:#1f2937; --muted:#6b7280; --primary:#2563eb; --danger:#dc2626; --border:#e5e7eb; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--bg);color:var(--text)}
+    .container{min-height:100dvh;display:grid;place-items:center;padding:24px}
+    .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    h1{margin:0 0 6px;font-size:22px}
+    .sub{margin:0 0 22px;color:var(--muted);font-size:14px}
+    .field{margin-bottom:14px}
+    label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
+    input[type=text],input[type=password]{width:100%;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;background:#fff}
+    input[type=text]:focus,input[type=password]:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+    .actions{margin-top:18px;display:flex;gap:10px;align-items:center}
+    button{height:40px;padding:0 14px;background:var(--primary);color:#fff;border:0;border-radius:8px;font-weight:600;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .link{color:var(--primary);text-decoration:none;font-size:14px}
+    .msg{margin-top:10px;font-size:14px;min-height:20px}
+    .msg.error{color:var(--danger)}
+    .msg.success{color:#047857}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>로그인</h1>
+      <p class="sub">아이디와 비밀번호를 입력하세요.</p>
+      <div th:if="${param.success}" class="msg success" th:text="${param.success[0]}"></div>
+      <div th:if="${param.error}" class="msg error" th:text="${param.error[0]}"></div>
+
+      <form id="signin-form" autocomplete="on" th:action="@{/signin}" method="post">
+        <div class="field">
+          <label for="userId">아이디</label>
+          <input id="userId" name="id" type="text" placeholder="아이디" required th:value="${param.id != null ? param.id[0] : ''}" />
+        </div>
+        <div class="field">
+          <label for="password">비밀번호</label>
+          <input id="password" name="password" type="password" placeholder="비밀번호" required />
+        </div>
+        <div class="actions">
+          <button id="submitBtn" type="submit">로그인</button>
+          <a class="link" th:href="@{/signup}">아직 계정이 없으신가요? 회원가입</a>
+        </div>
+        <div id="message" class="msg" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    (function(){
+      const form = document.getElementById('signin-form');
+      const submitBtn = document.getElementById('submitBtn');
+      const message = document.getElementById('message');
+
+      function setMessage(text, type){
+        message.textContent = text || '';
+        message.className = 'msg' + (type ? ' ' + type : '');
+      }
+
+      form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        setMessage('');
+        submitBtn.disabled = true;
+
+        const formData = new FormData(form);
+        const payload = {
+          id: formData.get('id')?.toString().trim(),
+          password: formData.get('password')?.toString()
+        };
+
+        if(!payload.id || !payload.password){
+          setMessage('아이디와 비밀번호를 입력하세요.', 'error');
+          submitBtn.disabled = false;
+          return;
+        }
+
+        try{
+          const res = await fetch('/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if(!res.ok){
+            const text = await res.text();
+            throw new Error(text || '로그인 실패');
+          }
+
+          const data = await res.json(); // { accessToken, refreshToken }
+          try {
+            localStorage.setItem('accessToken', data.accessToken || '');
+          } catch(_) {}
+
+          const params = new URLSearchParams(location.search);
+          const nextUrl = params.get('next') || '/books';
+          setMessage('로그인 성공! 이동합니다...', 'success');
+          setTimeout(()=>{ window.location.href = nextUrl; }, 800);
+        } catch(err){
+          setMessage(err?.message || '오류가 발생했습니다.', 'error');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
+

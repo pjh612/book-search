@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>도서 목록</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/books.css">
+  <script src="/js/auth-fetch.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>도서 목록</h1>
+      <form id="searchForm" class="search-form">
+        <input id="keyword" class="input" type="text" name="keyword" placeholder="책 제목 검색" th:value="${keyword}" />
+        <button type="submit">검색</button>
+        <button type="button" class="ghost" id="resetBtn">초기화</button>
+      </form>
+      <a class="ghost-link" href="/signin">로그인</a>
+    </div>
+
+    <div id="hotKeywords" class="hot-keywords" aria-live="polite">
+      <span class="label">인기 검색어</span>
+      <div id="kwList" class="kw-list"></div>
+    </div>
+
+    <div id="message" class="msg"></div>
+
+    <div class="grid" id="list"></div>
+
+    <div class="pager">
+      <button id="prevBtn" class="ghost">이전</button>
+      <span id="pageInfo"></span>
+      <button id="nextBtn" class="ghost">다음</button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const PLACEHOLDER_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="#eef2ff"/>
+              <stop offset="100%" stop-color="#e5e7eb"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#g)"/>
+          <g fill="#9ca3af" transform="translate(75,110)">
+            <rect x="0" y="0" width="150" height="180" rx="8" ry="8" fill="#d1d5db"/>
+            <path d="M15 30h120v8H15zM15 55h120v8H15zM15 80h100v8H15z"/>
+          </g>
+          <text x="50%" y="90%" dominant-baseline="middle" text-anchor="middle" fill="#6b7280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial" font-size="16">
+            No Cover Image
+          </text>
+        </svg>
+      `);
+
+      const listEl = document.getElementById('list');
+      const msgEl = document.getElementById('message');
+      const formEl = document.getElementById('searchForm');
+      const kwEl = document.getElementById('keyword');
+      const resetBtn = document.getElementById('resetBtn');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const pageInfo = document.getElementById('pageInfo');
+      const hotWrap = document.getElementById('hotKeywords');
+      const kwListEl = document.getElementById('kwList');
+
+      const state = { mode: 'all', keyword: (kwEl && kwEl.value) || '', page: 0, size: 12, totalPages: 0, totalElements: 0 };
+
+      function setMsg(text, type){
+        if (!msgEl) return;
+        msgEl.textContent = text || '';
+        msgEl.className = 'msg' + (type ? ' ' + type : '');
+      }
+      function fmtDate(v){ try{ return v ? new Date(v).toLocaleDateString() : ''; }catch{ return v || ''; } }
+
+      function renderList(items){
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        if (!items || items.length === 0){ setMsg('표시할 도서가 없습니다.'); return; }
+        setMsg('');
+        const frag = document.createDocumentFragment();
+        items.forEach(b => {
+          const card = document.createElement('div'); card.className = 'card';
+          const a = document.createElement('a'); a.href = `/books/${b.id}`; a.title = '상세보기';
+          const img = document.createElement('img'); img.className = 'thumb'; img.alt = '표지';
+          const imgSrc = (b && typeof b.image === 'string' && b.image.trim()) ? b.image : PLACEHOLDER_IMG;
+          img.src = imgSrc;
+          img.onerror = () => { img.onerror = null; img.src = PLACEHOLDER_IMG; };
+          const body = document.createElement('div'); body.className = 'card-body';
+          const t = document.createElement('h3'); t.className = 'title'; t.textContent = b.title || '(제목 없음)';
+          const m = document.createElement('p'); m.className = 'meta'; m.textContent = [b.author, b.publisher, fmtDate(b.published)].filter(Boolean).join(' · ');
+          body.appendChild(t); body.appendChild(m); a.appendChild(img); a.appendChild(body); card.appendChild(a); frag.appendChild(card);
+        });
+        listEl.appendChild(frag);
+      }
+
+      function renderPager(){
+        pageInfo.textContent = state.totalPages ? `${state.page+1} / ${state.totalPages}` : '';
+        prevBtn.disabled = state.page <= 0;
+        nextBtn.disabled = state.page + 1 >= state.totalPages;
+      }
+
+      async function fetchJSON(url){
+        console.log("Fetching:", url);
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(await res.text() || '요청 실패');
+        return res.json();
+      }
+
+      async function loadAll(){
+        setMsg('불러오는 중...');
+        try{
+          const data = await fetchJSON(`/api/books?page=${state.page}&size=${state.size}`);
+          const items = data.content || [];
+          state.totalPages = data.totalPages || 0;
+          state.totalElements = data.totalElements || (items ? items.length : 0);
+          renderList(items); renderPager(); setMsg('');
+        }catch(err){ setMsg(err.message || '불러오기 실패', 'error'); }
+      }
+
+      async function doSearch(){
+        const q = (state.keyword || '').trim();
+        if (!q){ state.mode = 'all'; state.page = 0; return loadAll(); }
+        setMsg('검색 중...');
+        try{
+          const data = await fetchJSON(`/api/books/search?keyword=${encodeURIComponent(q)}&page=${state.page}&size=${state.size}`);
+          const items = data.books || [];
+          const p = data.pageInfo || {};
+          state.totalPages = p.totalPages || 0;
+          state.totalElements = p.totalElements || (items ? items.length : 0);
+          renderList(items); renderPager(); setMsg(state.totalElements ? `\'${q}\' 검색 결과 ${state.totalElements}건` : '검색 결과가 없습니다.');
+        }catch(err){ setMsg(err.message || '검색 실패', 'error'); }
+      }
+
+      function toLocalISODate(d = new Date()){
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${day}`;
+      }
+
+      async function loadHotKeywords(){
+        if (!kwListEl || !hotWrap) return;
+        try{
+          const data = await fetchJSON(`/api/hot-keywords`);
+          console.log(data);
+          const keywords = (data && data.keywords) ? data.keywords : (Array.isArray(data) ? data : []);
+          kwListEl.innerHTML = '';
+          if (!keywords.length){ hotWrap.style.display = 'none'; return; }
+          hotWrap.style.display = '';
+          const frag = document.createDocumentFragment();
+          keywords.forEach((kw, i)=>{
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'kw-chip';
+            console.log(kw,i);
+            const rank = document.createElement('span'); rank.className = 'kw-rank'; rank.textContent = String(i+1);
+            const text = document.createElement('span'); text.textContent = ` ${kw}`;
+            btn.appendChild(rank); btn.appendChild(text);
+            btn.addEventListener('click', ()=>{
+              if (kwEl) kwEl.value = kw;
+              state.keyword = kw;
+              state.page = 0;
+              state.mode = 'search';
+              doSearch();
+            });
+            frag.appendChild(btn);
+          });
+          kwListEl.appendChild(frag);
+        }catch(err){
+          console.warn('인기 검색어 로드 실패', err);
+          hotWrap.style.display = 'none';
+        }
+      }
+
+      if (formEl){
+        formEl.addEventListener('submit', (e)=>{
+          e.preventDefault();
+          state.keyword = kwEl ? kwEl.value : '';
+          state.page = 0;
+          state.mode = state.keyword ? 'search' : 'all';
+          state.mode === 'search' ? doSearch() : loadAll();
+        });
+      }
+
+      if (resetBtn){
+        resetBtn.addEventListener('click', ()=>{
+          if (kwEl) kwEl.value = '';
+          state.keyword = '';
+          state.page = 0;
+          state.mode = 'all';
+          loadAll();
+        });
+      }
+
+      prevBtn.addEventListener('click', ()=>{ if(state.page>0){ state.page--; state.mode==='search'?doSearch():loadAll(); } });
+      nextBtn.addEventListener('click', ()=>{ if(state.page+1<state.totalPages){ state.page++; state.mode==='search'?doSearch():loadAll(); } });
+
+      loadHotKeywords(10);
+      if (state.keyword) { state.mode='search'; doSearch(); } else { loadAll(); }
+    })();
+  </script>
+</body>
+</html>
