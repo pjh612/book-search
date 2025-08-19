@@ -14,14 +14,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class SigninServiceTest {
 
@@ -84,16 +84,26 @@ class SigninServiceTest {
     @Test
     @DisplayName("토큰 갱신 성공")
     void refreshToken_success() {
-        when(tokenProvider.validateToken("refreshToken")).thenReturn(true);
+        String accessToken = "access";
+        String refreshToken = "refresh";
+        String newAccessToken = "newAccess";
+        String newRefreshToken = "newRefresh";
+
+        when(tokenProvider.validateToken(refreshToken)).thenReturn(true);
         when(cacheProvider.hasKey(anyString())).thenReturn(false);
-        when(cacheProvider.get("refreshToken", String.class)).thenReturn(Optional.of("accessToken"));
-        when(tokenProvider.renewToken(eq("accessToken"), any(Long.class))).thenReturn("newAccessToken");
-        when(tokenProvider.renewToken(eq("refreshToken"), any(Long.class))).thenReturn("newRefreshToken");
+        when(cacheProvider.get(refreshToken, String.class)).thenReturn(Optional.of(accessToken));
+        doNothing().when(cacheProvider).save(eq(newRefreshToken), eq(newAccessToken), any(Duration.class));
+        when(tokenProvider.renewToken(eq(accessToken), any(Long.class))).thenReturn(newAccessToken);
+        when(tokenProvider.renewToken(eq(refreshToken), any(Long.class))).thenReturn(newRefreshToken);
 
-        RefreshTokenResponse response = signinService.refreshToken("refreshToken");
+        RefreshTokenResponse response = signinService.refreshToken(refreshToken);
 
-        assertThat(response.accessToken()).isEqualTo("newAccessToken");
-        assertThat(response.refreshToken()).isEqualTo("newRefreshToken");
+        assertThat(response.accessToken()).isEqualTo(newAccessToken);
+        assertThat(response.refreshToken()).isEqualTo(newRefreshToken);
+
+        verify(tokenProvider).renewToken(eq(accessToken), any(Long.class));
+        verify(tokenProvider).renewToken(eq(refreshToken), any(Long.class));
+        verify(cacheProvider).save(eq(newRefreshToken), eq(newAccessToken), any(Duration.class));
     }
 
     @Test

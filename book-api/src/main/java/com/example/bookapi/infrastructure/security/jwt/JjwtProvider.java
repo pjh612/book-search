@@ -1,10 +1,7 @@
 package com.example.bookapi.infrastructure.security.jwt;
 
 import com.example.bookapi.application.out.TokenProvider;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -40,8 +37,13 @@ public class JjwtProvider implements TokenProvider {
 
     @Override
     public String renewToken(String token, long expirationTimeMillis) {
-        Claims claims = getClaims(token);
-
+        Claims claims;
+        try {
+            claims = getClaims(token);
+        } catch (ExpiredJwtException e) {
+            Map<String, Object> claimMap = e.getClaims();
+            return generateToken(claimMap, expirationTimeMillis);
+        }
         return generateToken(claims, expirationTimeMillis);
     }
 

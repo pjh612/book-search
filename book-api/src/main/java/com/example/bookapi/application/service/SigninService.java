@@ -41,7 +41,7 @@ public class SigninService implements SigninUsecase {
         Map<String, Object> claims = Map.of("username", user.getUsername(),
                 "role", user.getRole());
         String accessToken = tokenProvider.generateToken(user.getId().toString(), claims, ACCESS_TOKEN_EXPIRATION_SECONDS * 1000);
-        String refreshToken = tokenProvider.generateToken(user.getId().toString(), null, ACCESS_TOKEN_EXPIRATION_SECONDS * 1000);
+        String refreshToken = tokenProvider.generateToken(user.getId().toString(), null, REFRESH_TOKEN_EXPIRATION_SECONDS * 1000);
 
         cacheProvider.save(refreshToken, accessToken, Duration.ofSeconds(REFRESH_TOKEN_EXPIRATION_SECONDS));
 
@@ -60,6 +60,7 @@ public class SigninService implements SigninUsecase {
         String newRefreshToken = tokenProvider.renewToken(refreshToken, REFRESH_TOKEN_EXPIRATION_SECONDS * 1000);
 
         cacheProvider.save(String.format("blocked:token:%s", refreshToken), null, Duration.ofSeconds(REFRESH_TOKEN_EXPIRATION_SECONDS));
+        cacheProvider.save(newRefreshToken, newAccessToken, Duration.ofSeconds(REFRESH_TOKEN_EXPIRATION_SECONDS));
 
         return new RefreshTokenResponse(newAccessToken, newRefreshToken);
     }
