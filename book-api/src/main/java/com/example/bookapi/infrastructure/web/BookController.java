@@ -5,6 +5,7 @@ import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
+import com.example.bookapi.application.facade.QueryBookFacade;
 import com.example.bookapi.application.in.QueryBookUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class BookController {
 
     private final QueryBookUseCase queryBookUseCase;
+    private final QueryBookFacade queryBookFacade;
 
     @GetMapping
     Page<BookResponse> getBooks(@PageableDefault Pageable pageable) {
@@ -35,6 +37,6 @@ public class BookController {
 
     @GetMapping("/search")
     BookSearchResponse searchBooks(@RequestParam @Valid @NotBlank String keyword, @PageableDefault Pageable pageable) {
-        return queryBookUseCase.searchBooks(new BookSearchRequest(keyword, pageable));
+        return queryBookFacade.searchBooks(new BookSearchRequest(keyword, pageable));
     }
 }
