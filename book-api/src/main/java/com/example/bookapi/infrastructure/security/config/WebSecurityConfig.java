@@ -36,7 +36,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers(HttpMethod.POST, "/api/users", "/api/users/auth/**").permitAll()
-                                .requestMatchers("/api/books/**").hasRole("ADMIN")
+                                .requestMatchers("/api/books/**").hasRole("USER")
                                 .anyRequest().authenticated()
                 )
                 .exceptionHandling(eh -> eh
