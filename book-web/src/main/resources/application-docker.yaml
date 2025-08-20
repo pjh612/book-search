@@ -5,4 +5,4 @@ server:
   port: 8081
 client:
     book-api:
-        url: http://localhost:8082/api
+        url: http://book-api:8082/api

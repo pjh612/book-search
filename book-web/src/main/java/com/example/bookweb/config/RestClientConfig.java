@@ -2,6 +2,7 @@ package com.example.bookweb.config;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -14,7 +15,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class RestClientConfig {
 
     @Bean
-    RestClient restClient(RestClient.Builder builder) {
+    RestClient restClient(RestClient.Builder builder, @Value("${client.book-api.url}") String baseUrl) {
         ClientHttpRequestInterceptor authInterceptor = (request, body, execution) -> {
             try {
                 ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -30,7 +31,7 @@ public class RestClientConfig {
         };
 
         return builder
-                .baseUrl("http://localhost:8082/api")
+                .baseUrl(baseUrl)
                 .requestInterceptor(authInterceptor)
                 .build();
     }

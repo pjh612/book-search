@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.google.cloud.tools.jib' version '3.4.4'
 }
 
 group = 'com.example'
@@ -36,6 +37,10 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     compileOnly 'org.projectlombok:lombok'
@@ -54,3 +59,25 @@ tasks.named('test') {
 }
 
 tasks.register("prepareKotlinBuildScriptModel") {}
+
+
+jib {
+    from {
+        image = 'bellsoft/liberica-openjre-alpine:21'
+        platforms {
+            platform {
+                architecture = "arm64"
+                os = "linux"
+            }
+        }
+    }
+    to {
+        image = rootProject.name + '-' + project.name + ":" + version
+        tags = ['latest']
+    }
+}
+
+tasks.register('buildDockerImage') {
+    dependsOn 'build'
+    finalizedBy 'jibDockerBuild'
+}

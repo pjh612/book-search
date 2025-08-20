@@ -4,7 +4,7 @@ spring:
   datasource:
     username: root
     password: password
-    url: jdbc:mysql://localhost:3306/trevari
+    url: jdbc:mysql://mysql:3306/trevari
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     database: mysql
@@ -16,10 +16,14 @@ spring:
     hibernate:
       ddl-auto: update
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: trevari-kafka-1:29092, trevari-kafka-2:29092, trevari-kafka-3:29092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  data:
+    redis:
+      host: redis
+      port: 6379
 server:
   port: 8082
 secret: asdsaddsadsaadsdsaadssadasdsaddsadsadasdasdassaddsaasdsaddsa

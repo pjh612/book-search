@@ -1,0 +1,242 @@
+services:
+  mysql:
+    image: mysql:8.0
+    networks:
+      - trevari_network
+    env_file: .env
+    ports:
+      - "3306:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      - TZ=Asia/Seoul
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    volumes:
+      - ./infra/mysql:/var/lib/mysql
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql
+  kafka-1:
+    container_name: trevari-kafka-1
+    image: confluentinc/cp-kafka:7.9.0
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./kafka/data/kafka-1:/var/lib/kafka/data
+    networks:
+      - trevari_network
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://:29092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29094,EXTERNAL://0.0.0.0:9092
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trevari-kafka-1:29094,2@trevari-kafka-2:29094,3@trevari-kafka-3:29094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+  kafka-2:
+    container_name: trevari-kafka-2
+    image: confluentinc/cp-kafka:7.9.0
+    ports:
+      - "9095:9095"
+    volumes:
+      - ./kafka/data/kafka-2:/var/lib/kafka/data
+    networks:
+      - trevari_network
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://:29092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9095
+      KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29094,EXTERNAL://0.0.0.0:9095
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trevari-kafka-1:29094,2@trevari-kafka-2:29094,3@trevari-kafka-3:29094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+  kafka-3:
+    container_name: trevari-kafka-3
+    image: confluentinc/cp-kafka:7.9.0
+    ports:
+      - "9096:9096"
+    volumes:
+      - ./kafka/data/kafka-3:/var/lib/kafka/data
+    networks:
+      - trevari_network
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://:29092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9096
+      KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29094,EXTERNAL://0.0.0.0:9096
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trevari-kafka-1:29094,2@trevari-kafka-2:29094,3@trevari-kafka-3:29094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    networks:
+      - trevari_network
+    ports:
+      - "8989:8080"
+    restart: always
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=trevari-kafka-1:29092,trevari-kafka-2:29092,trevari-kafka-3:29092
+  redis:
+    image: redis:latest
+    networks:
+      - trevari_network
+    ports:
+      - 6379:6379
+    restart: always
+
+  fluentd:
+    build: ./infra/fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./infra/fluentd/conf:/fluentd/etc
+      - ./logs/app.log:/fluentd/log/app.log
+      - fluentd-data:/fluentd/log/pos
+    networks:
+      - trevari_network
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - TZ=Asia/Seoul
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - trevari_network
+  # 메트릭 수집기
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - trevari_network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/default.json
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - trevari_network
+  kafka-exporter:
+    image: danielqsj/kafka-exporter
+    command:
+      - "--kafka.server=trevari-kafka-1:29092"
+      - "--kafka.server=trevari-kafka-2:29092"
+      - "--kafka.server=trevari-kafka-3:29092"
+    ports:
+      - 9308:9308
+    networks:
+      - trevari_network
+  book-api:
+    image: trevari-book-search-book-api:0.0.1-SNAPSHOT
+    networks:
+      - trevari_network
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - "SPRING_PROFILES_ACTIVE=docker"
+    volumes:
+      - ./logs:/logs
+  keyword-consumer-service:
+    image: trevari-book-search-keyword-consumer-service:0.0.1-SNAPSHOT
+    networks:
+      - trevari_network
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - redis
+      - book-api
+    environment:
+      - "SPRING_PROFILES_ACTIVE=docker"
+  book-web:
+    image: trevari-book-search-book-web:0.0.1-SNAPSHOT
+    networks:
+      - trevari_network
+    ports:
+      - "8081:8081"
+    depends_on:
+      - book-api
+    environment:
+      - "SPRING_PROFILES_ACTIVE=docker"
+  kafka-connect:
+    build: ./infra/connect
+    links:
+      - kafka-1:kafka-1
+      - kafka-2:kafka-2
+      - kafka-3:kafka-3
+    ports:
+      - "8083:8083"
+    environment:
+      - CONNECT_BOOTSTRAP_SERVERS=trevari-kafka-1:29092,trevari-kafka-2:29092,trevari-kafka-3:29092
+      - CONNECT_GROUP_ID=1
+      - CONNECT_CONFIG_STORAGE_TOPIC=my_connect_configs
+      - CONNECT_OFFSET_STORAGE_TOPIC=my_connect_offsets
+      - CONNECT_STATUS_STORAGE_TOPIC=my_connect_statuses
+      - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.storage.StringConverter
+      - CONNECT_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_INTERNAL_KEY_CONVERTER=org.apache.kafka.connect.storage.StringConverter
+      - CONNECT_INTERNAL_VALUE_CONVERTER="org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_REST_ADVERTISED_HOST_NAME=kafka-connect
+    volumes:
+      - ./data/connect:/kafka/my-plugins
+      - ./infra/connect:/connect
+    command:
+      - bash
+      - -c
+      - |
+        chmod +x /connect/wait-for-connect.sh
+        /etc/confluent/docker/run &
+        /connect/wait-for-connect.sh
+        curl -X POST -H "Content-Type: application/json" --data @/connect/connect-config.json http://localhost:8083/connectors
+        wait
+
+    networks:
+      - trevari_network
+volumes:
+  prometheus-data:
+  grafana-data:
+  fluentd-data:
+  elasticsearch-data:
+
+networks:
+  trevari_network:
+    driver: bridge
