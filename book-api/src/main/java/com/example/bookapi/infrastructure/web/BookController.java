@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -99,7 +100,7 @@ public class BookController {
     })
     BookSearchResponse searchBooks(
             @Parameter(description = "검색 키워드", example = "자바|스프링")
-            @RequestParam @Valid @NotBlank String keyword,
+            @RequestParam @Valid @NotBlank @Size(min = 1, max = 100) String keyword,
             @ParameterObject @PageableDefault Pageable pageable
     ) {
         return queryBookFacade.searchBooks(new BookSearchRequest(keyword, pageable));

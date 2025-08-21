@@ -6,6 +6,7 @@ import com.example.bookapi.application.in.SignupUseCase;
 import com.example.bookapi.infrastructure.openapi.annotation.ApiErrorCodeExample;
 import com.example.bookapi.infrastructure.openapi.annotation.ExceptionCodeExample;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,7 +25,7 @@ public class SignupController {
             @ExceptionCodeExample(title = "이미 사용중인 아이디일 때", code = "ID_DUPLICATED")
     })
     @PostMapping
-    public SignupResponse signup(@RequestBody SignupRequest request) {
+    public SignupResponse signup(@Valid @RequestBody SignupRequest request) {
         return signupUseCase.signup(request);
     }
 }
