@@ -2,6 +2,7 @@ package com.example.bookapi.infrastructure.web;
 
 import com.example.bookapi.application.dto.HotKeywordResponse;
 import com.example.bookapi.application.in.QueryHotKeywordUseCase;
+import com.example.bookapi.common.exception.ExceptionConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -18,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(HotKeywordController.class)
+@WebMvcTest({HotKeywordController.class, ExceptionConfig.class})
 @WithMockUser(username = "test")
 class HotKeywordControllerTest {
 

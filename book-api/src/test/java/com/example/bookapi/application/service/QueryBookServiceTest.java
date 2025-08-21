@@ -6,6 +6,7 @@ import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.application.out.MessagePublisher;
 import com.example.bookapi.application.out.SearchEnginePort;
+import com.example.bookapi.common.exception.ApplicationException;
 import com.example.bookapi.infrastructure.persistence.jpa.adapter.BookJpaRepositoryAdapter;
 import com.example.bookapi.infrastructure.search.model.SearchOperatorType;
 import com.example.bookapi.infrastructure.search.model.SearchResult;
@@ -98,15 +99,15 @@ class QueryBookServiceTest {
     }
 
     @Test
-    @DisplayName("findById가 데이터가 없으면 EntityNotFoundException을 던진다")
-    void findById_throwsEntityNotFoundException() {
+    @DisplayName("findById가 데이터가 없으면 예외를 던진다")
+    void findById_throwsException() {
         // given
         UUID id = UUID.randomUUID();
         when(bookJpaRepositoryAdapter.findById(id)).thenReturn(Optional.empty());
 
         // expect
         assertThatThrownBy(() -> service.findById(id))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasMessageContaining("도서 정보를 찾을 수 없습니다");
     }
 
