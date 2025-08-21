@@ -28,7 +28,6 @@
     <div id="message" class="msg"></div>
 
     <div class="grid" id="list"></div>
-    <!-- 무한스크롤 관찰 지점 -->
     <div id="infiniteSentinel" aria-hidden="true"></div>
 
     <div class="pager">
@@ -59,7 +58,6 @@
         </svg>
       `);
 
-      // Elements
       const listEl = document.getElementById('list');
       const msgEl = document.getElementById('message');
       const formEl = document.getElementById('searchForm');
@@ -73,22 +71,18 @@
       const sentinel = document.getElementById('infiniteSentinel');
       const pager = document.querySelector('.pager');
 
-      // State
       const state = {
-        mode: 'all',                 // 'all' | 'search'
+        mode: 'all',
         keyword: (kwEl && kwEl.value) || '',
         size: 24,
-        // cursor mode
         cursor: null,
         hasMore: true,
         loading: false,
-        // page mode (for search only)
         page: 0,
         totalPages: 0,
         totalElements: 0
       };
 
-      // Helpers
       function setMsg(text, type){
         if (!msgEl) return;
         msgEl.textContent = text || '';
@@ -127,13 +121,11 @@
       }
 
       async function fetchJSON(url){
-        console.log('Fetching:', url);
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error(await res.text() || '요청 실패');
         return res.json();
       }
 
-      // ============== Cursor mode (all) ==============
       let io = null;
       function setupObserver(){
         if (!sentinel) return;
@@ -153,8 +145,9 @@
         state.loading = true;
         try{
           let url = `/api/books/cursor?size=${state.size}`;
-          if (state.cursor) {
-            url += `&cursor=${encodeURIComponent(state.cursor)}`;
+          if (state.cursor && (state.cursor.date || state.cursor.id)) {
+            if (state.cursor.date) url += `&date=${encodeURIComponent(state.cursor.date)}`;
+            if (state.cursor.id) url += `&id=${encodeURIComponent(state.cursor.id)}`;
           }
           const data = await fetchJSON(url);
           const items = data.items || [];
@@ -178,13 +171,11 @@
       }
 
       async function initCursorMode(){
-        // UI 전환
         togglePager(false);
         toggleSentinel(true);
         disconnectObserver();
         setupObserver();
 
-        // 상태 초기화
         state.cursor = null;
         state.hasMore = true;
         state.loading = false;
@@ -193,13 +184,9 @@
         await loadMoreCursor();
       }
 
-      // ============== Page mode (search) ==============
-      async function loadAll(){ /* deprecated: cursor 모드로 대체 */ return initCursorMode(); }
-
       async function doSearch(){
         const q = (state.keyword || '').trim();
         if (!q){ state.mode = 'all'; return initCursorMode(); }
-        // 검색 모드: 페이지 기반 유지, 무한스크롤 비활성
         toggleSentinel(false);
         disconnectObserver();
         togglePager(true);
@@ -218,7 +205,6 @@
         }catch(err){ setMsg(err.message || '검색 실패', 'error'); }
       }
 
-      // ============== Hot Keywords ==============
       async function loadHotKeywords(){
         if (!kwListEl || !hotWrap) return;
         try{
@@ -245,7 +231,6 @@
         }catch(err){ console.warn('인기 검색어 로드 실패', err); hotWrap.style.display = 'none'; }
       }
 
-      // ============== Events ==============
       if (formEl){
         formEl.addEventListener('submit', (e)=>{
           e.preventDefault();
@@ -269,7 +254,6 @@
       prevBtn.addEventListener('click', ()=>{ if(state.page>0){ state.page--; doSearch(); } });
       nextBtn.addEventListener('click', ()=>{ if(state.page+1<state.totalPages){ state.page++; doSearch(); } });
 
-      // ============== Init ==============
       loadHotKeywords();
       if ((state.keyword || '').trim()) { state.mode='search'; togglePager(true); toggleSentinel(false); doSearch(); }
       else { state.mode='all'; togglePager(false); initCursorMode(); }

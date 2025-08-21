@@ -17,7 +17,7 @@ public interface BookApiClient {
 
     Page<BookResponse> getBooks(Pageable pageable);
 
-    CursorPageResponse<Instant, BookResponse> getBooks(Instant cursor, int size);
+    CursorPageResponse<BookCursor, BookResponse> getBooks(BookCursor cursor, int size);
 
     BookSearchResponse searchBooks(BookSearchRequest request);
 

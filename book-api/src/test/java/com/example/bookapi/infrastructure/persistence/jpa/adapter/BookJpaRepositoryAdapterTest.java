@@ -1,5 +1,6 @@
 package com.example.bookapi.infrastructure.persistence.jpa.adapter;
 
+import com.example.bookapi.application.dto.BookCursor;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.common.model.CursorPageResponse;
 import com.example.bookapi.domain.model.Isbn;
@@ -36,7 +37,7 @@ class BookJpaRepositoryAdapterTest {
     void findBooks_cursorShouldNullIfEmptyResult() {
         when(bookQueryRepository.findBooks(any(), anyInt())).thenReturn(List.of());
 
-        CursorPageResponse<Instant, BookDetailResponse> result = adapter.findBooks(Instant.now(), 10);
+        CursorPageResponse<BookCursor, BookDetailResponse> result = adapter.findBooks(new BookCursor(null, null), 10);
 
         assertThat(result.getCursor()).isNull();
         assertThat(result.getItems()).isEmpty();
@@ -53,9 +54,10 @@ class BookJpaRepositoryAdapterTest {
 
         when(bookQueryRepository.findBooks(any(), anyInt())).thenReturn(books);
 
-        CursorPageResponse<Instant, BookDetailResponse> result = adapter.findBooks(Instant.now(), 10);
+        CursorPageResponse<BookCursor, BookDetailResponse> result = adapter.findBooks(new BookCursor(null, null), 10);
 
-        assertThat(result.getCursor()).isEqualTo(book1.createdAt());
+        assertThat(result.getCursor().date()).isEqualTo(book1.createdAt());
+        assertThat(result.getCursor().id()).isEqualTo(book1.id());
         assertThat(result.getItems()).containsExactly(book2, book1);
     }
 }

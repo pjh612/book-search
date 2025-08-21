@@ -1,6 +1,6 @@
 package com.example.bookapi.infrastructure.web;
 
-
+import com.example.bookapi.application.dto.BookCursor;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
@@ -14,9 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -33,7 +37,8 @@ public class BookController {
     }
 
     @GetMapping("/cursor")
-    CursorPageResponse<Instant, BookDetailResponse> getBooks(@RequestParam(required = false) Instant cursor, @RequestParam int size) {
+    CursorPageResponse<BookCursor, BookDetailResponse> getBooks(@Valid @ModelAttribute BookCursor cursor,
+                                                                @RequestParam(defaultValue = "10") int size) {
         return queryBookUseCase.findBooks(cursor, size);
     }
 

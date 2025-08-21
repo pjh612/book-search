@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Controller
@@ -39,15 +38,15 @@ public class BookController {
 
     @ResponseBody
     @GetMapping("/api/books/cursor")
-    CursorPageResponse<Instant, BookResponse> getBooks(@RequestParam(required = false) Instant cursor, @RequestParam int size) {
+    CursorPageResponse<BookCursor, BookResponse> getBooks(@ModelAttribute BookCursor cursor, @RequestParam int size) {
         return bookApiClient.getBooks(cursor, size);
     }
 
     @ResponseBody
     @GetMapping("/api/books/{id}")
     public ResponseEntity<BookDetailResponse> getById(@PathVariable UUID id) {
-            BookDetailResponse body = bookApiClient.getBookDetailById(id);
-            return ResponseEntity.ok(body);
+        BookDetailResponse body = bookApiClient.getBookDetailById(id);
+        return ResponseEntity.ok(body);
     }
 
     @ResponseBody

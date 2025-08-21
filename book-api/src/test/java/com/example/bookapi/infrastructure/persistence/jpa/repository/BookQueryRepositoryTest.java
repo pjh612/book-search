@@ -1,5 +1,6 @@
 package com.example.bookapi.infrastructure.persistence.jpa.repository;
 
+import com.example.bookapi.application.dto.BookCursor;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.infrastructure.persistence.jpa.config.TestJpaConfig;
@@ -223,7 +224,7 @@ class BookQueryRepositoryTest {
     }
 
     @Test
-    @DisplayName("커서가 있으면 해당 id보다 작은 데이터만 반환")
+    @DisplayName("커서가 있으면 해당 커서 값 보다 작은 데이터만 반환")
     void findBooks_returnsBooksLessThanCursor() {
         // Given
         AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
@@ -239,12 +240,13 @@ class BookQueryRepositoryTest {
         em.flush();
         em.clear();
 
-        Instant cursor = bookQueryRepository.findById(books[2].getId())
-                .get()
-                .createdAt();
+
+        BookDetailResponse bookDetailResponse = bookQueryRepository.findById(books[2].getId()).get();
+        BookCursor bookCursor = new BookCursor(bookDetailResponse.createdAt(), bookDetailResponse.id());
+
 
         // When
-        List<BookDetailResponse> result = bookQueryRepository.findBooks(cursor, 10);
+        List<BookDetailResponse> result = bookQueryRepository.findBooks(bookCursor, 10);
 
         // Then
         assertThat(result).hasSize(2);
@@ -253,7 +255,7 @@ class BookQueryRepositoryTest {
     }
 
     @Test
-    @DisplayName("findBooks(Instant, int): size 제한이 잘 동작한다")
+    @DisplayName("findBooks(BookCursor, int): size 제한이 잘 동작한다")
     void findBooks_sizeLimitWorks() {
         // Given
         AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
@@ -272,5 +274,35 @@ class BookQueryRepositoryTest {
 
         // Then
         assertThat(result).hasSize(5);
+    }
+
+    @Test
+    @DisplayName("findBooks(BookCursor, int): createdAt이 같은 경우 id로 정렬이 잘 동작한다.")
+    void findBooks_ifCreatedAtIsEqualSuccess() {
+        // Given
+        Instant now = Instant.now();
+        AuthorEntity author = new AuthorEntity(null, "저자", null, null, null, null);
+        em.persist(author);
+        PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
+        em.persist(publisher);
+        BookEntity entity1 = new BookEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"), "isbn1", "제목1", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        BookEntity entity2 = new BookEntity(UUID.fromString("00000000-0000-0000-0000-000000000002"), "isbn2", "제목2", "부제2", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        BookEntity entity3 = new BookEntity(UUID.fromString("00000000-0000-0000-0000-000000000003"), "isbn3", "제목3", "부제3", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        em.persist(entity1);
+        em.persist(entity2);
+        em.persist(entity3);
+
+        // createdAt을 동일하게 설정
+        em.createQuery("update BookEntity b set b.createdAt = :createdAt")
+                .setParameter("createdAt", now)
+                .executeUpdate();
+        em.flush();
+        em.clear();
+
+        // When
+        List<BookDetailResponse> books = bookQueryRepository.findBooks(new BookCursor(now, entity2.getId()), 10);
+
+        // Then
+        assertThat(books).hasSize(1);
     }
 }

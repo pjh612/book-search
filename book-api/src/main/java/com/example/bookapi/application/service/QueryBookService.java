@@ -1,5 +1,6 @@
 package com.example.bookapi.application.service;
 
+import com.example.bookapi.application.dto.BookCursor;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
@@ -16,7 +17,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -39,8 +39,8 @@ public class QueryBookService implements QueryBookUseCase {
     }
 
     @Override
-    @Cacheable(value = "bookList", key = "#cursor + ':' + #size")
-    public CursorPageResponse<Instant, BookDetailResponse> findBooks(Instant cursor, int size) {
+    @Cacheable(value = "bookList", key = "#cursor.id() + ':' + #cursor.date() + ':' + #size")
+    public CursorPageResponse<BookCursor, BookDetailResponse> findBooks(BookCursor cursor, int size) {
         return bookQueryRepository.findBooks(cursor, size);
     }
 

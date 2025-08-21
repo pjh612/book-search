@@ -63,11 +63,12 @@ public class BookApiRestClient implements BookApiClient {
     }
 
     @Override
-    public CursorPageResponse<Instant, BookResponse> getBooks(Instant cursor, int size) {
+    public CursorPageResponse<BookCursor, BookResponse> getBooks(BookCursor cursor, int size) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/books/cursor")
-                        .queryParam("cursor", cursor)
+                        .queryParam("date", cursor.date())
+                        .queryParam("id", cursor.id())
                         .queryParam("size", size)
                         .build())
                 .retrieve()
