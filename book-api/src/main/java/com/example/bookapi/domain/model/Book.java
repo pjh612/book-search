@@ -26,6 +26,8 @@ public class Book {
 
     public Book(UUID id, Isbn isbn, String title, String subtitle, String image, UUID authorId, UUID publisherId, Instant published, AuditInfo auditInfo) {
         if (title == null || title.isBlank()) throw new IllegalArgumentException("Title is required");
+        if (title.length() > 100) throw new IllegalArgumentException("Title must be less than 100 characters");
+        if (subtitle != null && subtitle.length() > 100) throw new IllegalArgumentException("Subtitle must be less than 100 characters");
         if (isbn == null) throw new IllegalArgumentException("ISBN is required");
         if (authorId == null) throw new IllegalArgumentException("Author ID is required");
         if (publisherId == null) throw new IllegalArgumentException("Publisher ID is required");

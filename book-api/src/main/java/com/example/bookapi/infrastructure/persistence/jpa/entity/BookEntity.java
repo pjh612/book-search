@@ -25,7 +25,7 @@ public class BookEntity extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String isbn;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String title;
 
     private String subtitle;
@@ -34,10 +34,10 @@ public class BookEntity extends BaseEntity {
 
     private Instant published;
 
-    @Column(name = "publisher_id")
+    @Column(name = "publisher_id", nullable = false)
     private UUID publisherId;
 
-    @Column(name = "author_id")
+    @Column(name = "author_id", nullable = false)
     private UUID authorId;
 
     public BookEntity(UUID id, String isbn, String title, String subtitle, String image, Instant published, UUID publisherId, UUID authorId, Instant createdAt, Instant updatedAt, String createdBy, String updatedBy) {

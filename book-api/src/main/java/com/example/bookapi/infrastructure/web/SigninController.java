@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,7 +47,7 @@ public class SigninController {
                             }
                     )
             )
-            @RequestBody SigninRequest request
+            @Valid @RequestBody SigninRequest request
     ) {
         return signinUsecase.signin(request);
     }
@@ -71,7 +72,7 @@ public class SigninController {
                             }
                     )
             )
-            @RequestBody RefreshTokenRequest request
+            @Valid @RequestBody RefreshTokenRequest request
     ) {
         return signinUsecase.refreshToken(request.refreshToken());
     }

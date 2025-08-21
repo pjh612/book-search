@@ -5,13 +5,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -25,7 +25,9 @@ public class UserEntity extends BaseEntity {
     private UUID id;
 
     @Column(nullable = false, unique = true)
+    @Size(min = 4, max = 20)
     private String username;
+
     @Column(nullable = false)
     private String password;
 

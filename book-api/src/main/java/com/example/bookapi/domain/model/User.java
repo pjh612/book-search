@@ -1,11 +1,9 @@
 package com.example.bookapi.domain.model;
 
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -18,12 +16,19 @@ public class User {
     private AuditInfo auditInfo;
 
     public User(UUID id, String username, String password, String role, AuditInfo auditInfo) {
-        if(username==null || username.isBlank()) {
+        if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("아이디를 입력 해주세요.");
         }
-        if(password==null || password.isBlank()) {
+        if (password == null || password.isBlank()) {
             throw new IllegalArgumentException("패스워드를 입력 해주세요.");
         }
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("권한을 입력 해주세요.");
+        }
+        if (username.length() < 4 || username.length() > 20) {
+            throw new IllegalArgumentException("아이디는 4자 이상 20자 이하로 입력 해주세요.");
+        }
+
         this.id = id;
         this.username = username;
         this.password = password;

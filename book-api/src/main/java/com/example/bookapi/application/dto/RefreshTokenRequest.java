@@ -1,4 +1,8 @@
 package com.example.bookapi.application.dto;
 
-public record RefreshTokenRequest(String refreshToken) {
+import jakarta.validation.constraints.NotBlank;
+
+public record RefreshTokenRequest(
+        @NotBlank String refreshToken
+) {
 }

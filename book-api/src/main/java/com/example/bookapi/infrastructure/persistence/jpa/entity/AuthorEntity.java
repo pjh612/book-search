@@ -23,7 +23,7 @@ public class AuthorEntity extends BaseEntity {
     @UuidV7Generator
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String name;
 
     public AuthorEntity(UUID id, String name, Instant createdAt, Instant updatedAt, String createdBy, String updatedBy) {

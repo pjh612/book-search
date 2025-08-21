@@ -38,14 +38,11 @@ public final class Isbn {
     @Override public String toString() { return value; }
 
     public static String randomIsbn13() {
-        // 978 또는 979 접두사 선택
         String prefix = Math.random() < 0.5 ? "978" : "979";
-        // 9자리 랜덤 숫자 생성
         StringBuilder sb = new StringBuilder(prefix);
         for (int i = 0; i < 9; i++) {
             sb.append((int) (Math.random() * 10));
         }
-        // 체크디지트 계산
         String first12 = sb.toString();
         int sum = 0;
         for (int i = 0; i < 12; i++) {
