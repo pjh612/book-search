@@ -8,9 +8,9 @@ import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.application.in.QueryBookUseCase;
 import com.example.bookapi.application.out.BookQueryRepositoryPort;
 import com.example.bookapi.application.out.SearchEnginePort;
+import com.example.bookapi.common.exception.ApplicationException;
 import com.example.bookapi.common.model.CursorPageResponse;
 import com.example.bookapi.infrastructure.search.model.SearchResult;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+
+import static com.example.bookapi.common.exception.ExceptionCode.NOT_FOUND_BOOK;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +31,7 @@ public class QueryBookService implements QueryBookUseCase {
     @Cacheable(value = "bookDetail", key = "#id")
     public BookDetailResponse findById(UUID id) {
         return bookQueryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("도서 정보를 찾을 수 없습니다. ID: " + id));
+                .orElseThrow(() -> new ApplicationException(NOT_FOUND_BOOK));
     }
 
     @Override

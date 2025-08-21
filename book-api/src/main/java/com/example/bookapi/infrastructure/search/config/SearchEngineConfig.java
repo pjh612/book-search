@@ -61,6 +61,7 @@ public class SearchEngineConfig {
                 )
                 .from(bookEntity)
                 .join(authorEntity).on(bookEntity.authorId.eq(authorEntity.id))
-                .join(publisherEntity).on(publisherEntity.id.eq(bookEntity.publisherId));
+                .join(publisherEntity).on(publisherEntity.id.eq(bookEntity.publisherId))
+                .orderBy(bookEntity.createdAt.desc());
     }
 }

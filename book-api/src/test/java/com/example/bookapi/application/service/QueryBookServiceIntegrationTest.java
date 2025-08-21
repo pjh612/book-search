@@ -4,6 +4,7 @@ import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
+import com.example.bookapi.common.exception.ApplicationException;
 import com.example.bookapi.domain.model.Isbn;
 import com.example.bookapi.infrastructure.cache.redis.TestRedisConfiguration;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.AuthorEntity;
@@ -11,7 +12,6 @@ import com.example.bookapi.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.PublisherEntity;
 import com.example.bookapi.infrastructure.search.exception.InvalidSearchQueryException;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -161,14 +161,14 @@ class QueryBookServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("findById는 없는 ID일 때 EntityNotFoundException을 던진다")
-    void findById_throwsEntityNotFoundException_whenNotFound() {
+    @DisplayName("findById는 없는 ID일 때 예외를 던진다")
+    void findById_throwsException_whenNotFound() {
         // given
         UUID notExistId = UUID.randomUUID();
 
         // expect
         assertThatThrownBy(() -> queryBookService.findById(notExistId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ApplicationException.class)
                 .hasMessageContaining("도서 정보를 찾을 수 없습니다");
     }
 

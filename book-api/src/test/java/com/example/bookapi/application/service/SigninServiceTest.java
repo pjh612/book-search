@@ -5,7 +5,7 @@ import com.example.bookapi.application.dto.SigninRequest;
 import com.example.bookapi.application.dto.SigninResponse;
 import com.example.bookapi.application.out.CacheProvider;
 import com.example.bookapi.application.out.TokenProvider;
-import com.example.bookapi.common.exception.AuthException;
+import com.example.bookapi.common.exception.ApplicationException;
 import com.example.bookapi.domain.model.AuditInfo;
 import com.example.bookapi.domain.model.User;
 import com.example.bookapi.domain.repository.UserRepository;
@@ -67,7 +67,8 @@ class SigninServiceTest {
         SigninRequest request = new SigninRequest("test", "wrong");
 
         assertThatThrownBy(() -> signinService.signin(request))
-                .isInstanceOf(AuthException.class);
+                .isInstanceOf(ApplicationException.class)
+                .hasMessageContaining("아이디 비밀번호를 확인해주세요.");
     }
 
     @Test
@@ -78,7 +79,8 @@ class SigninServiceTest {
         SigninRequest request = new SigninRequest("notfound", "password");
 
         assertThatThrownBy(() -> signinService.signin(request))
-                .isInstanceOf(AuthException.class);
+                .isInstanceOf(ApplicationException.class)
+                .hasMessageContaining("아이디 비밀번호를 확인해주세요.");
     }
 
     @Test
@@ -112,6 +114,7 @@ class SigninServiceTest {
         when(tokenProvider.validateToken("badToken")).thenReturn(false);
 
         assertThatThrownBy(() -> signinService.refreshToken("badToken"))
-                .isInstanceOf(AuthException.class);
+                .isInstanceOf(ApplicationException.class)
+                .hasMessageContaining("유효하지 않은 토큰입니다.");
     }
 }

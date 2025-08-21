@@ -38,7 +38,7 @@ public class QuerydslSearchEngine<T> implements SearchEnginePort<T> {
         SearchCriteria searchCriteria = queryParser.parse(keyword);
 
         JPAQuery<T> query = createQuery(searchCriteria);
-        Long total = getTotal(query.clone());
+        Long total = getTotal(query);
         List<T> content = getContent(query, pageable);
         Page<T> page = new PageImpl<>(content, pageable, total);
 
@@ -64,7 +64,10 @@ public class QuerydslSearchEngine<T> implements SearchEnginePort<T> {
     }
 
     private Long getTotal(JPAQuery<T> query) {
-        return query.select(Wildcard.count)
+        JPAQuery<T> clone = query.clone();
+        clone.getMetadata().clearOrderBy();
+
+        return clone.select(Wildcard.count)
                 .fetchOne();
     }
 
