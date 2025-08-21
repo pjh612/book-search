@@ -1,5 +1,6 @@
 package com.example.keywordbatch.job;
 
+import com.example.config.TestRedisConfiguration;
 import com.example.keywordbatch.entity.HotKeyword;
 import com.example.keywordbatch.reader.HotKeywordRedisReader;
 import com.example.keywordbatch.repository.HotKeywordSnapshotRepository;
@@ -23,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @SpringBatchTest
 @ActiveProfiles("test")
-@Import({HotKeywordSnapshotJobConfig.class, HotKeywordRedisReader.class, HotKeywordSnapshotWriter.class})
+@Import({HotKeywordSnapshotJobConfig.class, HotKeywordRedisReader.class, HotKeywordSnapshotWriter.class, TestRedisConfiguration.class})
 class HotKeywordSnapshotJobIntegrationTest {
 
     @Autowired
