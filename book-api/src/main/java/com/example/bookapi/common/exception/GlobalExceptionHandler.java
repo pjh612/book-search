@@ -1,7 +1,6 @@
-package com.example.bookapi.common;
+package com.example.bookapi.common.exception;
 
-import com.example.bookapi.infrastructure.search.exception.InvalidSearchQueryException;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.bookapi.common.exception.converter.ExceptionCodeConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
@@ -11,23 +10,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
     private final Environment environment;
+    private final ExceptionCodeConverter exceptionCodeConverter;
 
-    @ExceptionHandler(InvalidSearchQueryException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidSearchQueryException(InvalidSearchQueryException ex) {
+    @ExceptionHandler(ApplicationException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(ApplicationException ex) {
         log(Level.WARN, ex);
 
-        ErrorResponse response = new ErrorResponse(
-                ex.getMessage(),
-                "INVALID_SEARCH_QUERY",
-                String.valueOf(System.currentTimeMillis())
-        );
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        ErrorResponse response = exceptionCodeConverter.toResponse(ex);
+
+        return new ResponseEntity<>(response, HttpStatus.valueOf(response.status()));
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
@@ -35,23 +33,23 @@ public class GlobalExceptionHandler {
         log(Level.WARN, ex);
 
         ErrorResponse response = new ErrorResponse(
-                "요청 파라미터가 유효하지 않습니다: " + ex.getMessage(),
+                "요청 파라미터가 유효하지 않습니다: ",
                 "VALIDATION_ERROR",
-                String.valueOf(System.currentTimeMillis())
+                HttpStatus.BAD_REQUEST
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
         log(Level.WARN, ex);
 
         ErrorResponse response = new ErrorResponse(
-                ex.getMessage(),
-                "NOT_FOUND",
-                String.valueOf(System.currentTimeMillis()
-                ));
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                "요청 파라미터의 타입이 일치하지 않습니다: " + ex.getPropertyName(),
+                "TYPE_MISMATCH",
+                HttpStatus.BAD_REQUEST
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -61,8 +59,8 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse(
                 ex.getMessage(),
                 "undefiend",
-                String.valueOf(System.currentTimeMillis()
-                ));
+                HttpStatus.BAD_REQUEST
+        );
         return ResponseEntity.badRequest().body(response);
     }
 

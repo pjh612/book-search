@@ -3,6 +3,7 @@ package com.example.bookapi.application.service;
 
 import com.example.bookapi.application.dto.SignupRequest;
 import com.example.bookapi.application.dto.SignupResponse;
+import com.example.bookapi.common.exception.ApplicationException;
 import com.example.bookapi.domain.model.AuditInfo;
 import com.example.bookapi.domain.model.User;
 import com.example.bookapi.domain.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.assertj.ApplicationContextAssert;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.UUID;
@@ -86,7 +88,7 @@ class SignupServiceTest {
 
         // When & Then
 
-        Assertions.assertThatThrownBy(()-> signupService.signup(signupRequest)).isInstanceOf(IllegalArgumentException.class)
+        Assertions.assertThatThrownBy(()-> signupService.signup(signupRequest)).isInstanceOf(ApplicationException.class)
                 .hasMessageContaining("중복된 아이디의 사용자가 존재합니다.");
         verify(userRepository, times(1)).existsByUsername(signupRequest.id());
     }

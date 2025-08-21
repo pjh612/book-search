@@ -104,7 +104,7 @@ services:
       - "24224:24224/udp"
     volumes:
       - ./infra/fluentd/conf:/fluentd/etc
-      - ./logs/app.log:/fluentd/log/app.log
+      - ./logs:/fluentd/log
       - fluentd-data:/fluentd/log/pos
     networks:
       - trevari_network

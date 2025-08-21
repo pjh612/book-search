@@ -2,7 +2,7 @@ package com.example.bookapi.infrastructure.security.config;
 
 import com.example.bookapi.application.out.CacheProvider;
 import com.example.bookapi.application.out.TokenProvider;
-import com.example.bookapi.common.ErrorResponse;
+import com.example.bookapi.common.exception.ErrorResponse;
 import com.example.bookapi.infrastructure.security.filter.JwtFilter;
 import com.example.bookapi.infrastructure.security.jwt.JjwtProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -37,7 +38,12 @@ public class WebSecurityConfig {
                         authorizeRequests
                                 .requestMatchers(HttpMethod.POST, "/api/users", "/api/users/auth/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus", "/actuator/info").permitAll()
-                                .requestMatchers("/api/books/**","/api/hot-keywords").hasRole("USER")
+                                .requestMatchers(
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui.html",
+                                        "/swagger-ui/**"
+                                ).permitAll()
+                                .requestMatchers("/api/books/**", "/api/hot-keywords").hasRole("USER")
                                 .anyRequest().authenticated()
                 )
                 .exceptionHandling(eh -> eh
@@ -64,7 +70,7 @@ public class WebSecurityConfig {
         return (request, response, exception) -> {
             log.error(exception.getMessage());
 
-            ErrorResponse errorResponse = new ErrorResponse("인증이 필요합니다.", "NOT_AUTHENTICATED", String.valueOf(System.currentTimeMillis()));
+            ErrorResponse errorResponse = new ErrorResponse("인증이 필요합니다.", "NOT_AUTHENTICATED", HttpStatus.UNAUTHORIZED);
             String responseString = objectMapper.writeValueAsString(errorResponse);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json; charset=UTF-8");
@@ -77,7 +83,7 @@ public class WebSecurityConfig {
         return (request, response, exception) -> {
             log.error(exception.getMessage());
 
-            ErrorResponse errorResponse = new ErrorResponse("접근 권한이 없습니다.", "ACCESS_DENIED", String.valueOf(System.currentTimeMillis()));
+            ErrorResponse errorResponse = new ErrorResponse("접근 권한이 없습니다.", "ACCESS_DENIED", HttpStatus.FORBIDDEN);
             String responseString = objectMapper.writeValueAsString(errorResponse);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json; charset=UTF-8");

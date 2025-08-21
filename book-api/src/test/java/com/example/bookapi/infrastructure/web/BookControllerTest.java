@@ -5,9 +5,12 @@ import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.application.facade.QueryBookFacade;
 import com.example.bookapi.application.in.QueryBookUseCase;
+import com.example.bookapi.common.exception.ApplicationException;
+import com.example.bookapi.common.exception.ExceptionCode;
+import com.example.bookapi.common.exception.ExceptionConfig;
+import com.example.bookapi.common.exception.converter.impl.DefaultExceptionCodeConverter;
 import com.example.bookapi.domain.model.Isbn;
 import com.example.bookapi.infrastructure.search.model.SearchOperatorType;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(BookController.class)
+@WebMvcTest({BookController.class, ExceptionConfig.class})
 @WithMockUser(username = "test")
 class BookControllerTest {
 
@@ -114,7 +117,7 @@ class BookControllerTest {
     void getBookById_notFound() throws Exception {
         UUID id = UUID.randomUUID();
         Mockito.when(queryBookUseCase.findById(id))
-                .thenThrow(new EntityNotFoundException("도서 정보를 찾을 수 없습니다. ID: " + id));
+                .thenThrow(new ApplicationException(ExceptionCode.NOT_FOUND_BOOK));
 
         mockMvc.perform(get("/api/books/{id}", id))
                 .andExpect(status().isNotFound());

@@ -3,6 +3,7 @@ package com.example.bookapi.application.service;
 import com.example.bookapi.application.dto.SignupRequest;
 import com.example.bookapi.application.dto.SignupResponse;
 import com.example.bookapi.application.in.SignupUseCase;
+import com.example.bookapi.common.exception.ApplicationException;
 import com.example.bookapi.domain.model.AuditInfo;
 import com.example.bookapi.domain.model.User;
 import com.example.bookapi.domain.repository.UserRepository;
@@ -61,7 +62,7 @@ public class SignupServiceIntegrationTest {
         userRepository.save(new User(null, request.id(), passwordEncoder.encode(request.password()), "USER", AuditInfo.create(request.id())));
 
         // When, Then
-        Assertions.assertThatThrownBy(()->signupService.signup(request)).isInstanceOf(IllegalArgumentException.class)
+        Assertions.assertThatThrownBy(()->signupService.signup(request)).isInstanceOf(ApplicationException.class)
                 .hasMessageContaining("중복된 아이디의 사용자가 존재합니다.");
     }
 
