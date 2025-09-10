@@ -4,7 +4,7 @@ spring:
   datasource:
     username: root
     password: password
-    url: jdbc:mysql://localhost:3306/trevari-snapshot
+    url: jdbc:mysql://localhost:3306/book-snapshot
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     database: mysql

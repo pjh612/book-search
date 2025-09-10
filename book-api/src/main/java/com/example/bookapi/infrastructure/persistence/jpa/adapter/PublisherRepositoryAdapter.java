@@ -8,6 +8,9 @@ import com.example.bookapi.infrastructure.persistence.jpa.repository.PublisherJp
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Repository
 @RequiredArgsConstructor
 public class PublisherRepositoryAdapter implements PublisherRepository {
@@ -19,5 +22,11 @@ public class PublisherRepositoryAdapter implements PublisherRepository {
                 PublisherMapper.toEntity(publisher));
 
         return PublisherMapper.toDomain(save);
+    }
+
+    @Override
+    public Optional<Publisher> findById(UUID id) {
+        return publisherRepository.findById(id)
+                .map(PublisherMapper::toDomain);
     }
 }

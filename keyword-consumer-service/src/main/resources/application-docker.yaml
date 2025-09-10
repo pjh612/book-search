@@ -2,7 +2,7 @@ spring:
   application:
     name: keyword-consumer-service
   kafka:
-    bootstrap-servers: trevari-kafka-1:29092,trevari-kafka-2:29092,trevari-kafka-3:29092
+    bootstrap-servers: book-kafka-1:29092,book-kafka-2:29092,book-kafka-3:29092
   data:
     redis:
       host: redis

@@ -9,7 +9,9 @@ import com.example.bookapi.application.in.QueryBookUseCase;
 import com.example.bookapi.application.out.BookQueryRepositoryPort;
 import com.example.bookapi.application.out.SearchEnginePort;
 import com.example.bookapi.common.exception.ApplicationException;
+import com.example.bookapi.common.exception.ExceptionCode;
 import com.example.bookapi.common.model.CursorPageResponse;
+import com.example.bookapi.infrastructure.search.exception.InvalidSearchQueryException;
 import com.example.bookapi.infrastructure.search.model.SearchResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -51,8 +53,14 @@ public class QueryBookService implements QueryBookUseCase {
             key = "#request.keyword() + ':' + #request.pageable.pageNumber + ':' + #request.pageable.pageSize + ':' + #request.pageable.sort.toString()")
     public BookSearchResponse searchBooks(BookSearchRequest request) {
         String keyword = request.keyword().trim();
-        SearchResult<BookResponse> searchResult = searchEngine.search(keyword, request.pageable());
+        try {
+            SearchResult<BookResponse> searchResult = searchEngine.search(keyword, request.pageable());
 
-        return BookSearchResponse.from(searchResult);
+            return BookSearchResponse.from(searchResult);
+        } catch (InvalidSearchQueryException e) {
+            throw new ApplicationException(e.getMessage(), e, ExceptionCode.INVALID_SEARCH_QUERY);
+        } catch (Exception e) {
+            throw new ApplicationException(e.getMessage(), e, ExceptionCode.SEARCH_FAILED);
+        }
     }
 }

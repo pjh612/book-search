@@ -5,6 +5,7 @@ import com.example.bookapi.application.event.SearchEvent;
 import com.example.bookapi.application.in.QueryBookUseCase;
 import com.example.bookapi.application.out.MessagePublisher;
 import com.example.bookapi.infrastructure.cache.redis.TestRedisConfiguration;
+import com.example.bookapi.infrastructure.search.elasticsearch.TestElasticSearchConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestRedisConfiguration.class)
+@Import({TestRedisConfiguration.class, TestElasticSearchConfig.class})
 class QueryBookFacadeIntegrationTest {
 
     @Autowired

@@ -1,14 +1,23 @@
 package com.example.bookapi.application.service;
 
 import com.example.bookapi.application.dto.HotKeywordResponse;
+import com.example.bookapi.infrastructure.cache.redis.RedisHotKeywordRepositoryAdapter;
 import com.example.bookapi.infrastructure.cache.redis.TestRedisConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
+import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.connection.RedisConfiguration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -16,8 +25,12 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@Import({TestRedisConfiguration.class})
+@DataRedisTest // Redis 관련 빈들만 로드
+@Import({
+        QueryHotKeywordService.class,
+        RedisHotKeywordRepositoryAdapter.class,
+        TestRedisConfiguration.class
+})
 @ActiveProfiles("test")
 class QueryHotKeywordServiceIntegrationTest {
 

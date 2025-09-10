@@ -1,15 +1,21 @@
 package com.example.bookapi.application.service;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.example.bookapi.application.dto.BookDetailResponse;
 import com.example.bookapi.application.dto.BookResponse;
 import com.example.bookapi.application.dto.BookSearchRequest;
 import com.example.bookapi.application.dto.BookSearchResponse;
 import com.example.bookapi.common.exception.ApplicationException;
+import com.example.bookapi.common.exception.ExceptionCode;
 import com.example.bookapi.domain.model.Isbn;
 import com.example.bookapi.infrastructure.cache.redis.TestRedisConfiguration;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.AuthorEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.entity.PublisherEntity;
+import com.example.bookapi.infrastructure.search.elasticsearch.TestBookIndexConfig;
+import com.example.bookapi.infrastructure.search.elasticsearch.TestElasticSearchConfig;
+import com.example.bookapi.infrastructure.search.elasticsearch.document.BookDocument;
+import com.example.bookapi.infrastructure.search.elasticsearch.repository.BookDocumentRepository;
 import com.example.bookapi.infrastructure.search.exception.InvalidSearchQueryException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +31,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -36,7 +44,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("test")
 @Transactional
 @EmbeddedKafka
-@Import(TestRedisConfiguration.class)
+@Testcontainers
+@Import({TestRedisConfiguration.class, TestElasticSearchConfig.class, TestBookIndexConfig.class})
 class QueryBookServiceIntegrationTest {
 
     @Autowired
@@ -46,13 +55,22 @@ class QueryBookServiceIntegrationTest {
     private EntityManager em;
 
     @Autowired
+    private CreateBookService createBookService;
+    @Autowired
+    BookDocumentRepository bookDocumentRepository;
+
+    @Autowired
     private CacheManager cacheManager;
+
+    @Autowired
+    private ElasticsearchClient elasticsearchClient;
 
     @BeforeEach
     void clearCache() {
         cacheManager.getCacheNames().forEach(name ->
                 cacheManager.getCache(name).clear()
         );
+        bookDocumentRepository.deleteAll();
     }
 
     @Test
@@ -180,11 +198,9 @@ class QueryBookServiceIntegrationTest {
         em.persist(author);
         PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
         em.persist(publisher);
-
-        BookEntity book1 = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        em.persist(book1);
         em.flush();
         em.clear();
+        createTestBookData("자바 프로그래밍", "부제1", author, publisher);
 
         // when
         BookSearchRequest request = new BookSearchRequest("자바", PageRequest.of(0, 10));
@@ -203,11 +219,9 @@ class QueryBookServiceIntegrationTest {
         em.persist(author);
         PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
         em.persist(publisher);
-
-        BookEntity book = new BookEntity(null, "isbn3", "자바와 스프링", "부제3", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        em.persist(book);
         em.flush();
         em.clear();
+        createTestBookData("자바와 스프링", "부제3", author, publisher);
 
         // when
         BookSearchRequest request = new BookSearchRequest("자바와", PageRequest.of(0, 10));
@@ -226,15 +240,12 @@ class QueryBookServiceIntegrationTest {
         em.persist(author);
         PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
         em.persist(publisher);
-
-        BookEntity book1 = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        BookEntity book2 = new BookEntity(null, "isbn2", "스프링 부트", "부제2", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        BookEntity book3 = new BookEntity(null, "isbn3", "자바와 스프링", "부제3", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        em.persist(book1);
-        em.persist(book2);
-        em.persist(book3);
         em.flush();
         em.clear();
+
+        createTestBookData("자바 프로그래밍", "부제1", author, publisher);
+        createTestBookData("스프링 부트", "부제2", author, publisher);
+        createTestBookData("자바와 스프링", "부제3", author, publisher);
 
         // when
         BookSearchRequest request = new BookSearchRequest("자바|스프링", PageRequest.of(0, 10));
@@ -253,13 +264,11 @@ class QueryBookServiceIntegrationTest {
         em.persist(author);
         PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
         em.persist(publisher);
-
-        BookEntity book1 = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        BookEntity book2 = new BookEntity(null, "isbn2", "스프링 부트", "부제2", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        em.persist(book1);
-        em.persist(book2);
         em.flush();
         em.clear();
+
+        createTestBookData("자바 프로그래밍", "부제1", author, publisher);
+        createTestBookData("스프링 부트", "부제2", author, publisher);
 
         // when
         BookSearchRequest request = new BookSearchRequest("자바-스프링", PageRequest.of(0, 10));
@@ -271,13 +280,13 @@ class QueryBookServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("빈 keyword로 검색 시 InvalidSearchQueryException이 발생한다")
+    @DisplayName("빈 keyword로 검색 시 ApplicationException이 발생한다")
     void searchBooks_throwsException_whenKeywordBlank() {
         // expect
         BookSearchRequest request = new BookSearchRequest("   ", PageRequest.of(0, 10));
         assertThatThrownBy(() -> queryBookService.searchBooks(request))
-                .isInstanceOf(InvalidSearchQueryException.class)
-                .hasMessageContaining("query cannot be null or blank");
+                .isInstanceOf(ApplicationException.class)
+                .hasMessageContaining("Search keyword must not be null");
     }
 
     @Test
@@ -288,10 +297,9 @@ class QueryBookServiceIntegrationTest {
         em.persist(author);
         PublisherEntity publisher = new PublisherEntity(null, "출판사", null, null, null, null);
         em.persist(publisher);
-        BookEntity book = new BookEntity(null, "isbn1", "자바 프로그래밍", "부제1", null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
-        em.persist(book);
         em.flush();
         em.clear();
+        createTestBookData("자바 프로그래밍", "부제1", author, publisher);
 
         // when
         BookSearchRequest request = new BookSearchRequest("파이썬", PageRequest.of(0, 10));
@@ -302,4 +310,37 @@ class QueryBookServiceIntegrationTest {
         assertThat(response.pageInfo().totalElements()).isZero();
     }
 
+    protected BookEntity createTestBookData(String title, String subtitle, AuthorEntity author, PublisherEntity publisher) {
+        String isbn = Isbn.randomIsbn13().toString();
+        UUID bookId = UUID.randomUUID();
+        BookEntity book = new BookEntity(bookId, isbn, title, subtitle, null, Instant.now(), publisher.getId(), author.getId(), null, null, null, null);
+        BookDocument document = new BookDocument(
+                bookId,
+                isbn,
+                title,
+                "부제",
+                "image.jpg",
+                Instant.now(),
+                UUID.randomUUID(),
+                publisher.getName(),
+                UUID.randomUUID(),
+                author.getName(),
+                "system",
+                "system",
+                Instant.now(),
+                Instant.now()
+        );
+        em.persist(book);
+        em.flush();
+        em.clear();
+
+        bookDocumentRepository.save(document);
+        try {
+            elasticsearchClient.indices().refresh(r -> r.index("book"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return book;
+    }
 }

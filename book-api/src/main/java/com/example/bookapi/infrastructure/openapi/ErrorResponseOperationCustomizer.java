@@ -1,7 +1,7 @@
 package com.example.bookapi.infrastructure.openapi;
 
-import com.example.bookapi.common.exception.ErrorResponse;
 import com.example.bookapi.common.exception.ApplicationException;
+import com.example.bookapi.common.exception.ErrorResponse;
 import com.example.bookapi.common.exception.converter.ExceptionCodeConverter;
 import com.example.bookapi.infrastructure.openapi.annotation.ApiErrorCodeExample;
 import com.example.bookapi.infrastructure.openapi.annotation.ExceptionCodeExample;
@@ -16,7 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.web.method.HandlerMethod;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j

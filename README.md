@@ -38,34 +38,41 @@
   - 일정 주기마다 배치를 실행시켜 인기 검색어를 RDB에 저장하고, Redis 장애 시 데이터 복구, 백업 전략으로 활용 가능하도록 했습니다.
 
 ### 검색 엔진
-검색 기능은 MySQL의 LIKE 쿼리를 사용해 구현했습니다. 추후 Elasticsearch를 활용한 구현체를 구현하여 대체할 수 있습니다.
-현재는 QueryDSL을 사용하는 **QuerydslSearchEngine**이 구현되어 있으며 검색 연산자를 지원합니다. 
+검색 기능은 ElasticSearch를 활용했습니다.
+SearchEnginePort 인터페이스를 구현한 ElasticSearchEngine이 ES 노드와 상호작용하여 인덱싱된 도서 데이터를 검색합니다.
 
-**QuerydslSearchEngine**
-쿼리를 파싱하고, 검색 조건에 따라 검색을 실행하며, 결과를 집계합니다.
-Function<JPAQueryFactory, JPAQuery<?>>타입의 함수형인터페이스를 필드로 가지며, 쿼리를 외부에서 전달하여 검색 기능을 구현할 수 있게 하여 재사용성, 확장성을 높였습니다.
-기본 쿼리를 제공하면 검색어에 따른 조건을 추가한 쿼리를 자동 생성하고, 페이징을 위한 카운트 쿼리를 자동 생성합니다.
+ElasticSearchEngine은 다음과 같은 파싱, 빌드, 실행, 집계 프로세스를 거치며 아래 인터페이스를 구현한 구현체가 동작합니다.
 
 **QueryParser**
-검색어를 파싱하는 인터페이스로, 키워드와 연산자를 추출기능을 구현합니다.
+문자열 형태의 검색어를 토큰화 하여 적절한 단위로 분리합니다.
 
-**SearchOperator & SearchPredicateApplier**
-검색 연산자 인터페이스와 조건문을 적용하는 함수형 인터페이스입니다.
-인터페이스를 구현해 연산자와 그에 대한 처리를 확장할 수 있게 구현했습니다.
-
-```java
-  Map<SearchOperator, SearchPredicateApplier> operatorMap = Map.of(
-        SearchOperatorType.NO_OPERATOR, (booleanBuilder, keyword) -> booleanBuilder.or(QBookEntity.bookEntity.title.like("%" + keyword + "%")),
-        SearchOperatorType.OR_OPERATOR, (booleanBuilder, keyword) -> booleanBuilder.or(QBookEntity.bookEntity.title.like("%" + keyword + "%")),
-        SearchOperatorType.NOT_OPERATOR, (booleanBuilder, keyword) -> booleanBuilder.and(QBookEntity.bookEntity.title.notLike("%" + keyword + "%"))
-);
+ex) 
+```
+JAVA | SPRING -> 
+{
+  [ 
+    operator : NO_OPERATOR, keyword : "Java", 
+    operator : OR_OPERATOR, keyword: "Spring"
+  ]
+}
 ```
 
+**QueryBuilder**
+
+파싱된 토큰을 기반으로 ElasticSearch를 통해 검색할 수 있는 Query DSL 객체로 변환합니다.
+
+**ElasticSearchExecutor**
+
+Query DSL 객체를 전달하여 ElasticSearch에 질의하고, 결과를 반환받습니다.
+
+**SearchResultAggregator**
+
+검색 결과를 집계하여 클라이언트에 반환할 수 있는 형태로 가공합니다.
 
 
 
 ## 시스템 아키텍처
-![./img/img_3.png](img/img_3.png)
+![img.png](img/img.png)
 
 ### 로깅 및 모니터링
 ![i./img/img_2.png](img/img_2.png)
@@ -305,7 +312,7 @@ pull 기반으로 로그를 수집할 수 있어, 로그 수집 시스템의 부
   -  버퍼 및 백프레셔 역할을 하여 대규모 트래픽을 가정했을 때 elastiscsearch의 부하를 줄이고, 장애 발생 시에도 로그 데이터를 안전하게 저장할 수 있어 채택했습니다.
 - Elasticsearch
   - 수집된 로그 데이터를 인덱싱하고 검색할 수 있는 강력한 검색 엔진으로, 대량의 로그 데이터를 효율적으로 처리할 수 있습니다.
-  - 현재는 DB Query 기반의 검색을 하지만, 향후 Elasticsearch를 활용한 검색 기능 구현을 고려했을 때 적합하여 채택했습니다.
+  - Elasticsearch를 활용한 검색 기능 구현을 고려했을 때 적합하여 채택했습니다.
 
 ## 인증 및 인가
 - Spring Security
