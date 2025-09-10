@@ -4,9 +4,9 @@ import com.example.bookapi.application.out.SearchEnginePort;
 import com.example.bookapi.infrastructure.search.model.KeywordToken;
 import com.example.bookapi.infrastructure.search.model.SearchCriteria;
 import com.example.bookapi.infrastructure.search.model.SearchResult;
-import com.example.bookapi.infrastructure.search.parser.QueryParser;
-import com.example.bookapi.infrastructure.search.querydsl.predicate.SearchPredicateApplier;
-import com.example.bookapi.infrastructure.search.querydsl.predicate.SearchPredicateApplierFactory;
+import com.example.bookapi.infrastructure.search.port.QueryParser;
+import com.example.bookapi.infrastructure.search.querydsl.operator.QuerydslSearchOperatorApplier;
+import com.example.bookapi.infrastructure.search.querydsl.operator.QuerydslSearchOperatorApplierFactory;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.Wildcard;
 import com.querydsl.jpa.impl.JPAQuery;
@@ -22,13 +22,13 @@ public class QuerydslSearchEngine<T> implements SearchEnginePort<T> {
     private final JPAQueryFactory queryFactory;
     private final QueryParser<SearchCriteria> queryParser;
     private final Function<JPAQueryFactory, JPAQuery<T>> baseQueryFunction;
-    private final SearchPredicateApplierFactory searchPredicateApplierFactory;
+    private final QuerydslSearchOperatorApplierFactory searchOperatorApplierFactory;
 
-    public QuerydslSearchEngine(JPAQueryFactory queryFactory, Function<JPAQueryFactory, JPAQuery<T>> baseQueryFunction, QueryParser<SearchCriteria> queryParser, SearchPredicateApplierFactory searchPredicateApplierFactory) {
+    public QuerydslSearchEngine(JPAQueryFactory queryFactory, Function<JPAQueryFactory, JPAQuery<T>> baseQueryFunction, QueryParser<SearchCriteria> queryParser, QuerydslSearchOperatorApplierFactory searchOperatorApplierFactory) {
         this.queryFactory = queryFactory;
         this.baseQueryFunction = baseQueryFunction;
         this.queryParser = queryParser;
-        this.searchPredicateApplierFactory = searchPredicateApplierFactory;
+        this.searchOperatorApplierFactory = searchOperatorApplierFactory;
     }
 
     @Override
@@ -56,7 +56,7 @@ public class QuerydslSearchEngine<T> implements SearchEnginePort<T> {
     private JPAQuery<T> applyPredicates(SearchCriteria searchCriteria, JPAQuery<T> baseQuery) {
         BooleanBuilder builder = new BooleanBuilder();
         for (KeywordToken token : searchCriteria.tokens()) {
-            SearchPredicateApplier provider = searchPredicateApplierFactory.getApplier(token.operator());
+            QuerydslSearchOperatorApplier provider = searchOperatorApplierFactory.getApplier(token.operator());
             builder = provider.apply(builder, token.keyword());
         }
 

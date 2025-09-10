@@ -42,6 +42,7 @@ dependencies {
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     compileOnly 'org.projectlombok:lombok'
@@ -52,6 +53,12 @@ dependencies {
     testImplementation 'com.github.codemonstur:embedded-redis:1.4.3'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:elasticsearch'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:mysql'
+
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

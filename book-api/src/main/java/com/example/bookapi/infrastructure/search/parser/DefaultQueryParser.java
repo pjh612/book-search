@@ -5,6 +5,7 @@ import com.example.bookapi.infrastructure.search.model.KeywordToken;
 import com.example.bookapi.infrastructure.search.model.SearchCriteria;
 import com.example.bookapi.infrastructure.search.model.SearchOperator;
 import com.example.bookapi.infrastructure.search.model.SearchOperatorType;
+import com.example.bookapi.infrastructure.search.port.QueryParser;
 
 import java.util.LinkedList;
 import java.util.Stack;

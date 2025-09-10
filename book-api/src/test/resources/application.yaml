@@ -26,4 +26,7 @@ spring:
   data:
     redis:
       port: 6666
+    elasticsearch:
+      indices:
+        auto-create: true
 secret: asdsaddsadsaadsdsaadssadasdsaddsadsadasdasdassaddsaasdsaddsa

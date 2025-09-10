@@ -26,7 +26,7 @@ public class OpenApiConfig {
     public OpenAPI bookApi() {
         return new OpenAPI()
                 .info(new Info().title("Book API")
-                        .description("Trevari Book Search - REST API")
+                        .description("Book Search - REST API")
                         .version("v1")
                         .contact(new Contact().name("Book API Team").email("api@example.com"))
                         .license(new License().name("Apache 2.0").url("https://www.apache.org/licenses/LICENSE-2.0")))

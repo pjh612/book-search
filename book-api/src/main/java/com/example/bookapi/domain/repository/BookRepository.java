@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface BookRepository {
     void saveAll(List<Book> books);
+
+    Book save(Book book);
 }

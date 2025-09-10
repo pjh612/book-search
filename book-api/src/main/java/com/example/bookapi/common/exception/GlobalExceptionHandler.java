@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
     private final ExceptionCodeConverter exceptionCodeConverter;
 
     @ExceptionHandler(ApplicationException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(ApplicationException ex) {
+    public ResponseEntity<ErrorResponse> handleApplicationException(ApplicationException ex) {
         log(Level.WARN, ex);
 
         ErrorResponse response = exceptionCodeConverter.toResponse(ex);

@@ -7,6 +7,7 @@ import com.example.bookapi.application.out.BookQueryRepositoryPort;
 import com.example.bookapi.common.model.CursorPageResponse;
 import com.example.bookapi.domain.model.Book;
 import com.example.bookapi.domain.repository.BookRepository;
+import com.example.bookapi.infrastructure.persistence.jpa.entity.BookEntity;
 import com.example.bookapi.infrastructure.persistence.jpa.mapper.BookMapper;
 import com.example.bookapi.infrastructure.persistence.jpa.repository.BookJpaRepository;
 import com.example.bookapi.infrastructure.persistence.jpa.repository.BookQueryRepository;
@@ -51,5 +52,12 @@ public class BookJpaRepositoryAdapter implements BookRepository, BookQueryReposi
         bookJpaRepository.saveAll(books.stream()
                 .map(BookMapper::toEntity)
                 .toList());
+    }
+
+    @Override
+    public Book save(Book book) {
+        BookEntity savedBook = bookJpaRepository.save(BookMapper.toEntity(book));
+
+        return BookMapper.toDomain(savedBook);
     }
 }

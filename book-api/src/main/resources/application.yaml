@@ -4,7 +4,7 @@ spring:
   datasource:
     username: root
     password: password
-    url: jdbc:mysql://localhost:3306/trevari
+    url: jdbc:mysql://localhost:3306/book
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     database: mysql
@@ -20,6 +20,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  elasticsearch:
+    uris: http://localhost:9200
 server:
   port: 8082
 secret: asdsaddsadsaadsdsaadssadasdsaddsadsadasdasdassaddsaasdsaddsa

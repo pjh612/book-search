@@ -2,7 +2,7 @@ services:
   mysql:
     image: mysql:8.0
     networks:
-      - trevari_network
+      - book_network
     env_file: .env
     ports:
       - "3306:3306"
@@ -16,61 +16,61 @@ services:
       - ./infra/mysql:/var/lib/mysql
       - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql
   kafka-1:
-    container_name: trevari-kafka-1
+    container_name: book-kafka-1
     image: confluentinc/cp-kafka:7.9.0
     ports:
       - "9092:9092"
     volumes:
-      - ./kafka/data/kafka-1:/var/lib/kafka/data
+      - ./infra/kafka/data/kafka-1:/var/lib/kafka/data
     networks:
-      - trevari_network
+      - book_network
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://:29092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
       KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29094,EXTERNAL://0.0.0.0:9092
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trevari-kafka-1:29094,2@trevari-kafka-2:29094,3@trevari-kafka-3:29094
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@book-kafka-1:29094,2@book-kafka-2:29094,3@book-kafka-3:29094
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
   kafka-2:
-    container_name: trevari-kafka-2
+    container_name: book-kafka-2
     image: confluentinc/cp-kafka:7.9.0
     ports:
       - "9095:9095"
     volumes:
-      - ./kafka/data/kafka-2:/var/lib/kafka/data
+      - ./infra/kafka/data/kafka-2:/var/lib/kafka/data
     networks:
-      - trevari_network
+      - book_network
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://:29092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9095
       KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29094,EXTERNAL://0.0.0.0:9095
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trevari-kafka-1:29094,2@trevari-kafka-2:29094,3@trevari-kafka-3:29094
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@book-kafka-1:29094,2@book-kafka-2:29094,3@book-kafka-3:29094
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
   kafka-3:
-    container_name: trevari-kafka-3
+    container_name: book-kafka-3
     image: confluentinc/cp-kafka:7.9.0
     ports:
       - "9096:9096"
     volumes:
-      - ./kafka/data/kafka-3:/var/lib/kafka/data
+      - ./infra/kafka/data/kafka-3:/var/lib/kafka/data
     networks:
-      - trevari_network
+      - book_network
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://:29092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9096
       KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29094,EXTERNAL://0.0.0.0:9096
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trevari-kafka-1:29094,2@trevari-kafka-2:29094,3@trevari-kafka-3:29094
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@book-kafka-1:29094,2@book-kafka-2:29094,3@book-kafka-3:29094
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
@@ -78,7 +78,7 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui
     networks:
-      - trevari_network
+      - book_network
     ports:
       - "8989:8080"
     restart: always
@@ -88,11 +88,11 @@ services:
       - kafka-3
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=trevari-kafka-1:29092,trevari-kafka-2:29092,trevari-kafka-3:29092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=book-kafka-1:29092,book-kafka-2:29092,book-kafka-3:29092
   redis:
     image: redis:latest
     networks:
-      - trevari_network
+      - book_network
     ports:
       - 6379:6379
     restart: always
@@ -107,7 +107,7 @@ services:
       - ./logs:/fluentd/log
       - fluentd-data:/fluentd/log/pos
     networks:
-      - trevari_network
+      - book_network
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     environment:
@@ -120,7 +120,7 @@ services:
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
-      - trevari_network
+      - book_network
   # 메트릭 수집기
   prometheus:
     image: prom/prometheus:latest
@@ -133,7 +133,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
     networks:
-      - trevari_network
+      - book_network
 
   grafana:
     image: grafana/grafana:latest
@@ -149,21 +149,21 @@ services:
     depends_on:
       - prometheus
     networks:
-      - trevari_network
+      - book_network
   kafka-exporter:
     image: danielqsj/kafka-exporter
     command:
-      - "--kafka.server=trevari-kafka-1:29092"
-      - "--kafka.server=trevari-kafka-2:29092"
-      - "--kafka.server=trevari-kafka-3:29092"
+      - "--kafka.server=book-kafka-1:29092"
+      - "--kafka.server=book-kafka-2:29092"
+      - "--kafka.server=book-kafka-3:29092"
     ports:
       - 9308:9308
     networks:
-      - trevari_network
+      - book_network
   book-api:
-    image: trevari-book-search-book-api:0.0.1-SNAPSHOT
+    image: book-search-book-api:0.0.1-SNAPSHOT
     networks:
-      - trevari_network
+      - book_network
     ports:
       - "8082:8082"
     depends_on:
@@ -174,9 +174,9 @@ services:
     volumes:
       - ./logs:/logs
   keyword-consumer-service:
-    image: trevari-book-search-keyword-consumer-service:0.0.1-SNAPSHOT
+    image: book-search-keyword-consumer-service:0.0.1-SNAPSHOT
     networks:
-      - trevari_network
+      - book_network
     ports:
       - "8080:8080"
     depends_on:
@@ -188,9 +188,9 @@ services:
     environment:
       - "SPRING_PROFILES_ACTIVE=docker"
   book-web:
-    image: trevari-book-search-book-web:0.0.1-SNAPSHOT
+    image: book-search-book-web:0.0.1-SNAPSHOT
     networks:
-      - trevari_network
+      - book_network
     ports:
       - "8081:8081"
     depends_on:
@@ -206,7 +206,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - CONNECT_BOOTSTRAP_SERVERS=trevari-kafka-1:29092,trevari-kafka-2:29092,trevari-kafka-3:29092
+      - CONNECT_BOOTSTRAP_SERVERS=book-kafka-1:29092,book-kafka-2:29092,book-kafka-3:29092
       - CONNECT_GROUP_ID=1
       - CONNECT_CONFIG_STORAGE_TOPIC=my_connect_configs
       - CONNECT_OFFSET_STORAGE_TOPIC=my_connect_offsets
@@ -230,7 +230,7 @@ services:
         wait
 
     networks:
-      - trevari_network
+      - book_network
 volumes:
   prometheus-data:
   grafana-data:
@@ -238,5 +238,5 @@ volumes:
   elasticsearch-data:
 
 networks:
-  trevari_network:
+  book_network:
     driver: bridge

@@ -1,4 +1,4 @@
-rootProject.name = 'trevari-book-search'
+rootProject.name = 'book-search'
 
 include 'book-api'
 include 'keyword-consumer-service'
